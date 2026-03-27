@@ -21,7 +21,7 @@ elif Path(".env.example").exists():
 ALLOWED_LLM_PROVIDERS = {
     "openai", "azure", "anthropic", "mistral", "codestral",
     "groq", "openrouter", "huggingface", "cohere", "bedrock",
-    "vertex_ai", "gemini", "ollama"
+    "vertex_ai", "gemini", "ollama", "minimax"
 }
 
 
@@ -52,7 +52,7 @@ def get_model_name(provider: Optional[str], model: Optional[str]) -> str:
     # For all other providers, add provider/ prefix if not already present
     if provider:
         if model.startswith(f"{provider}/"):
-            return model  # Already has correct prefix
+            return model  # Already has correct prefix (e.g., openrouter/minimax/...)
         return f"{provider}/{model}"
     
     return model
@@ -124,7 +124,23 @@ def load_llm_config() -> Dict[str, Any]:
         api_key = os.getenv("GROQ_API_KEY")
     
     elif provider == "openrouter":
+        # OpenRouter uses the OpenAI-compatible API format.
+        # Use OpenAI provider with OpenRouter base URL to bypass LiteLLM's
+        # buggy openrouter adapter (which fails to send auth headers).
         api_key = os.getenv("OPENROUTER_API_KEY")
+        endpoint = "https://openrouter.ai/api/v1"
+        # Force OpenAI as the effective provider so get_model_name() passes the
+        # raw model name through (openrouter model IDs like "minimax/minimax-m2.7"
+        # are already in the correct format and must NOT be prefixed again).
+        provider = "openai"
+
+    elif provider == "minimax":
+        # MiniMax supports OpenAI-compatible API at https://api.minimaxi.com/v1
+        # Docs: https://platform.minimaxi.com/docs
+        api_key = os.getenv("MINIMAX_API_KEY") or os.getenv("OPENROUTER_API_KEY")
+        endpoint = "https://api.minimaxi.com/v1"
+        # Force OpenAI as the effective provider for OpenAI-compatible base URL
+        provider = "openai"
     
     elif provider == "huggingface":
         api_key = os.getenv("HUGGINGFACE_API_KEY")
@@ -169,13 +185,18 @@ def load_llm_config() -> Dict[str, Any]:
     # Get optional parameters
     temperature = float(os.getenv("LLM_TEMPERATURE", "0.2"))
     top_p = float(os.getenv("LLM_TOP_P", "0.2"))
-    
+    timeout = int(os.getenv("LLM_TIMEOUT", "300"))
+    max_retries = int(os.getenv("LLM_MAX_RETRIES", "3"))
+
     config = {
         "provider": provider,
         "model": get_model_name(provider, model),
         "api_key": api_key,
         "temperature": temperature,
-        "top_p": top_p
+        "top_p": top_p,
+        "timeout": timeout,
+        "max_retries": max_retries,
+        "api_base": endpoint if endpoint else None
     }
     
     # Add provider-specific fields

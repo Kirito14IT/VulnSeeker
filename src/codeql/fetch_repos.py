@@ -9,6 +9,7 @@ Example CLI usage:
 """
 
 from pathlib import Path
+import subprocess
 import sys
 import json
 import time
@@ -18,9 +19,9 @@ from typing import Any, Dict, List
 from pySmartDL import SmartDL
 
 from src.utils.common_functions import read_file, write_file_text, get_all_dbs
-from src.utils.config import get_github_token, get_github_api_url, get_github_ssl_verify
+from src.utils.config import get_github_token, get_github_api_url, get_github_ssl_verify, get_codeql_path
 from src.utils.logger import get_logger
-from src.utils.exceptions import CodeQLError, CodeQLConfigError
+from src.utils.exceptions import CodeQLError, CodeQLConfigError, CodeQLExecutionError
 
 logger = get_logger(__name__)
 
@@ -619,6 +620,101 @@ def fetch_codeql_dbs(
             zip_file.unlink()
     
     return download_db_by_name(repo_name, lang, threads)
+
+
+def build_local_codeql_db(
+    source_path: str,
+    lang: str = "c",
+    threads: int = 16,
+    force: bool = False
+) -> str:
+    """
+    Build a CodeQL database from local source code.
+
+    Databases are output to: output/databases/{lang}/{repo_name}/
+
+    Args:
+        source_path (str): Path to the local source code directory.
+        lang (str, optional): Programming language. Defaults to "c" (which maps to cpp).
+        threads (int, optional): Number of threads for CodeQL database creation.
+            Defaults to 16.
+        force (bool, optional): Re-build even if database already exists.
+            Defaults to False.
+
+    Returns:
+        str: Path to the directory containing the built CodeQL database.
+
+    Raises:
+        CodeQLConfigError: If CodeQL executable not found or source path invalid.
+        CodeQLExecutionError: If database creation fails.
+        CodeQLError: If output directory creation fails.
+    """
+    codeql_bin = get_codeql_path()
+    source = Path(source_path)
+
+    # Validate source path exists and is a directory
+    if not source.exists():
+        raise CodeQLConfigError(f"Source path does not exist: {source_path}")
+    if not source.is_dir():
+        raise CodeQLConfigError(f"Source path is not a directory: {source_path}")
+
+    # Infer repo_name from directory name
+    repo_name = source.name
+    db_folder = Path("output/databases") / lang
+    db_output = db_folder / repo_name
+
+    # Check if database already exists
+    if db_output.exists() and not force:
+        logger.info(
+            "Database already exists at %s, skipping build (use --force to rebuild)",
+            db_output
+        )
+        return str(db_output)
+
+    # Ensure output directory exists
+    try:
+        db_folder.mkdir(parents=True, exist_ok=True)
+    except PermissionError as e:
+        raise CodeQLError(f"Permission denied creating database directory: {db_folder}") from e
+    except OSError as e:
+        raise CodeQLError(f"OS error creating database directory: {db_folder}") from e
+
+    # Map 'c' to 'cpp' for CodeQL language argument
+    codeql_lang = "cpp" if lang == "c" else lang
+
+    logger.info("Building CodeQL database for: %s", source_path)
+    logger.info("Language: %s | Output: %s | Threads: %d", codeql_lang, db_output, threads)
+
+    try:
+        subprocess.run(
+            [
+                codeql_bin,
+                "database",
+                "create",
+                str(db_output),
+                "--source-root", str(source),
+                "--language", codeql_lang,
+                f"--threads={threads}"
+            ],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+    except FileNotFoundError as e:
+        raise CodeQLConfigError(
+            f"CodeQL executable not found: {codeql_bin}. "
+            "Please check your CODEQL_PATH configuration."
+        ) from e
+    except subprocess.CalledProcessError as e:
+        raise CodeQLExecutionError(
+            f"Failed to build CodeQL database at {db_output}: "
+            f"CodeQL returned exit code {e.returncode}.\n"
+            f"Stdout:\n{e.stdout}"
+        ) from e
+
+    logger.info("[+] CodeQL database built successfully at: %s", db_output)
+    return str(db_output)
 
 
 def main_cli() -> None:

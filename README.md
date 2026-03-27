@@ -16,6 +16,14 @@ For a detailed overview of the research and motivation behind Vulnhalla, see the
 3. **Running CodeQL queries** on those databases to detect security or code-quality issues
 4. **Post-processing** the results with an LLM (ChatGPT, Gemini, etc.) to classify and filter issues
 
+### Supported Analysis Modes
+
+| Mode | Database Source | Build Required | Command Example |
+|------|----------------|----------------|----------------|
+| **GitHub DB** | Pre-built CodeQL database on GitHub | No | `poetry run vulnhalla redis/redis` |
+| **Local DB** | Pre-built CodeQL database on your disk | No | `poetry run vulnhalla --local /path/to/db` |
+| **Local Source** | Your own source code (auto-builds CodeQL DB) | Yes | `poetry run vulnhalla --local-src /path/to/src` |
+
 ---
 
 ## 🚀 Quick Start
@@ -45,8 +53,8 @@ All configuration is in a single file: `.env`
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/cyberark/Vulnhalla
-cd Vulnhalla
+git clone https://github.com/Kirito14IT/VulnSeeker
+cd VulnSeeker
 ```
 
 2. **Copy `.env.example` to `.env`:**
@@ -158,6 +166,29 @@ poetry run vulnhalla --local /path/to/my-codeql-db
 ```
 
 > **Note:** The `--local` flag expects a CodeQL **database** directory, not a source code folder. You can verify by checking that the folder contains a `codeql-database.yml` file.
+
+#### Building a CodeQL Database from Local Source
+
+If you have a local repository's source code and want to analyze it without relying on GitHub's pre-built CodeQL databases, use the `--local-src` flag. Vulnhalla will automatically build a CodeQL database from your source code and then run the full analysis pipeline.
+
+**Windows (PowerShell):**
+```powershell
+poetry run vulnhalla --local-src C:\path\to\your-repo
+```
+
+**macOS / Linux:**
+```bash
+poetry run vulnhalla --local-src /path/to/your-repo
+```
+
+The built database will be saved to `output/databases/c/<repo_name>/`, and the full analysis pipeline (queries + LLM classification) will run automatically.
+
+**Re-build even if database already exists:**
+```bash
+poetry run vulnhalla --local-src /path/to/your-repo --force
+```
+
+> **Note:** `--local-src` expects a **source code directory**, not a CodeQL database folder. CodeQL will automatically detect the language from the source files.
 
 ### Additional Commands 
 
@@ -352,6 +383,8 @@ AWS_PROFILE=your-profile
 | `GITHUB_SSL_VERIFY` | `true` | SSL certificate verification. Set to `false` for GitHub Enterprise with self-signed or internal CA certificates |
 | `LLM_TEMPERATURE` | `0.2` | LLM temperature (0.0-2.0). Lower = more deterministic. **Recommended: keep at 0.2** |
 | `LLM_TOP_P` | `0.2` | LLM top-p sampling (0.0-1.0). Lower = more focused. **Recommended: keep at 0.2** |
+| `LLM_TIMEOUT` | `300` | Timeout in seconds for each LLM API request. Defaults to 5 minutes. Increase if network latency is high (e.g., accessing OpenRouter from regions with high latency). |
+| `LLM_MAX_RETRIES` | `3` | Maximum number of retries for failed LLM API requests (e.g., timeouts). Uses exponential backoff between retries. Set to `0` to disable retries. |
 | `LOG_LEVEL` | `INFO` | Logging level: `DEBUG`, `INFO`, `WARNING`, or `ERROR`. Controls verbosity of console output |
 | `LOG_FILE` | - | Optional path to log file (e.g., `logs/vulnhalla.log`). If set, logs are written to both console and file. File logging uses DEBUG level for detailed output |
 | `LOG_FORMAT` | `default` | Log format style: `default` (human-readable), or `json` (structured JSON format) |
@@ -451,7 +484,7 @@ This repository is licensed under the Apache License, Version 2.0 - see [LICENSE
 ## 🤝 Contributing
 
 
-We welcome contributions of all kinds to this repository. For instructions on how to get started and descriptions of our development workflows, please see our [contributing guide](https://github.com/cyberark/Vulnhalla/blob/main/CONTRIBUTING.md).
+We welcome contributions of all kinds to this repository. For instructions on how to get started and descriptions of our development workflows, please see our [contributing guide](https://github.com/Kirito14IT/VulnSeeker/blob/main/CONTRIBUTING.md).
 
 ---  
 ### Code of Conduct

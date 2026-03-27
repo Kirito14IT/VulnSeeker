@@ -9,6 +9,7 @@ All logic is now wrapped in the `LLMAnalyzer` class for improved organization.
 
 import os
 import json
+import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import litellm
@@ -34,7 +35,10 @@ class LLMAnalyzer:
         """
         self.config: Optional[Dict[str, Any]] = None
         self.model: Optional[str] = None
+        self.api_key: Optional[str] = None  # passed directly to litellm calls
         self.db_lookup = CodeQLDBLookup()
+        self.timeout: int = 300   # default 5 minutes
+        self.max_retries: int = 3  # default 3 retries
 
         # Tools configuration: A set of function calls the LLM can invoke
         self.tools: List[Dict[str, Any]] = [
@@ -200,7 +204,10 @@ class LLMAnalyzer:
                 provider = config.get("provider", "openai")
                 model = config.get("model", "gpt-4o")
                 self.model = get_model_name(provider, model)
+                self.api_key = config.get("api_key")
                 logger.info("Using model: %s", self.model)
+                self.timeout = config.get("timeout", 300)
+                self.max_retries = config.get("max_retries", 3)
                 self.setup_litellm_env()
                 return
             
@@ -210,6 +217,10 @@ class LLMAnalyzer:
             self.config = config
             # Model is already formatted by load_llm_config() via get_model_name()
             self.model = config.get("model", "gpt-4o")
+            self.api_key = config.get("api_key")
+            # Read timeout (seconds) and max_retries from config
+            self.timeout = config.get("timeout", 300)
+            self.max_retries = config.get("max_retries", 3)
             self.setup_litellm_env()
             
         except ValueError as e:
@@ -251,6 +262,10 @@ class LLMAnalyzer:
                 # Cohere also sets CO_API_KEY for compatibility
                 if provider == "cohere":
                     os.environ["CO_API_KEY"] = api_key
+                # When OpenAI uses a custom api_base (e.g., OpenRouter),
+                # also set OPENAI_API_BASE so litellm routes correctly
+                if provider == "openai" and self.config.get("api_base"):
+                    os.environ["OPENAI_API_BASE"] = self.config["api_base"]
         
         # Handle Azure (requires endpoint and api_version)
         elif provider == "azure":
@@ -361,25 +376,28 @@ class LLMAnalyzer:
 
         # Use the main model from config
         model_name = self.model if self.model else "gpt-4o"
-        
-        try:
-            response = litellm.completion(
-                model=model_name,
-                messages=[{"role": "user", "content": args_prompt}],
-                timeout=120  # 2 minute timeout
-            )
-            return response.choices[0].message
-        except litellm.RateLimitError as e:
-            raise LLMApiError(f"Rate limit exceeded for LLM API: {e}") from e
-        except litellm.Timeout as e:
-            raise LLMApiError(f"LLM API request timed out: {e}") from e
-        except litellm.AuthenticationError as e:
-            raise LLMApiError(f"LLM API authentication failed: {e}") from e
-        except litellm.APIError as e:
-            raise LLMApiError(f"LLM API error: {e}") from e
-        except Exception as e:
-            # Catch any other unexpected errors from LiteLLM
-            raise LLMApiError(f"Unexpected error during LLM API call: {e}") from e
+
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                response = litellm.completion(
+                    model=model_name,
+                    messages=[{"role": "user", "content": args_prompt}],
+                    timeout=self.timeout
+                )
+                return response.choices[0].message
+            except litellm.Timeout as e:
+                if attempt == self.max_retries:
+                    raise LLMApiError(f"LLM API request timed out after {self.max_retries} attempts ({self.timeout}s each): {e}") from e
+                logger.warning("LLM timeout (attempt %d/%d), retrying...", attempt, self.max_retries)
+                time.sleep(2 ** attempt)  # exponential backoff
+            except litellm.RateLimitError as e:
+                raise LLMApiError(f"Rate limit exceeded for LLM API: {e}") from e
+            except litellm.AuthenticationError as e:
+                raise LLMApiError(f"LLM API authentication failed: {e}") from e
+            except litellm.APIError as e:
+                raise LLMApiError(f"LLM API error: {e}") from e
+            except Exception as e:
+                raise LLMApiError(f"Unexpected error during LLM API call: {e}") from e
 
 
     def run_llm_security_analysis(
@@ -437,33 +455,48 @@ class LLMAnalyzer:
                     "model": self.model,
                     "messages": messages,
                     "tools": self.tools,
-                    "timeout": 120  # 2 minute timeout to prevent hanging
+                    "timeout": self.timeout
                 }
-                
+
                 # Check if using Bedrock (model starts with "bedrock/" or contains "arn:aws:bedrock")
                 is_bedrock = (
-                    self.model and 
+                    self.model and
                     (self.model.startswith("bedrock/") or "arn:aws:bedrock" in self.model)
                 )
-                
+
                 if is_bedrock:
                     # Bedrock Claude only accepts temperature OR top_p, not both
                     completion_kwargs["temperature"] = temperature
                 else:
                     completion_kwargs["temperature"] = temperature
                     completion_kwargs["top_p"] = top_p
-                
-                response = litellm.completion(**completion_kwargs)
+
+                for attempt in range(1, self.max_retries + 1):
+                    try:
+                        response = litellm.completion(**completion_kwargs)
+                        break  # success
+                    except litellm.Timeout as e:
+                        if attempt == self.max_retries:
+                            raise  # bubble out to outer except
+                        logger.warning("LLM timeout (attempt %d/%d), retrying...", attempt, self.max_retries)
+                        time.sleep(2 ** attempt)  # exponential backoff
+                    except litellm.RateLimitError as e:
+                        raise LLMApiError(f"Rate limit exceeded for LLM API: {e}") from e
+                    except litellm.AuthenticationError as e:
+                        raise LLMApiError(f"LLM API authentication failed: {e}") from e
+                    except litellm.APIError as e:
+                        raise LLMApiError(f"LLM API error: {e}") from e
+                    except Exception as e:
+                        raise LLMApiError(f"Unexpected error during LLM API call: {e}") from e
             except litellm.RateLimitError as e:
                 raise LLMApiError(f"Rate limit exceeded for LLM API: {e}") from e
             except litellm.Timeout as e:
-                raise LLMApiError(f"LLM API request timed out: {e}") from e
+                raise LLMApiError(f"LLM API request timed out after {self.max_retries} attempts ({self.timeout}s each): {e}") from e
             except litellm.AuthenticationError as e:
                 raise LLMApiError(f"LLM API authentication failed: {e}") from e
             except litellm.APIError as e:
                 raise LLMApiError(f"LLM API error: {e}") from e
             except Exception as e:
-                # Catch any other unexpected errors from LiteLLM
                 raise LLMApiError(f"Unexpected error during LLM API call: {e}") from e
             
             if not response.choices:
