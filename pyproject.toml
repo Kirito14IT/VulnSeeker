@@ -49,7 +49,7 @@ explicit_package_bases = true
 # Allow imports from third-party libraries without stubs
 ignore_missing_imports = true
 
-# Useful warnings that catch common issues
+# Useful warnings that catch common issues.
 warn_unused_ignores = true
 warn_redundant_casts = true
 no_implicit_optional = true

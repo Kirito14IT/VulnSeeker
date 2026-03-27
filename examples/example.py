@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 
 """
 example.py
@@ -60,4 +59,5 @@ def main():
     )
 
 if __name__ == "__main__":
+    # run main
     main()
