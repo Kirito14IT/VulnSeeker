@@ -1,8 +1,8 @@
-# Vulnhalla 
+# VulnSeeker
 # Automated CodeQL Analysis with LLM Classification
 
 <div align="center">
-  <img src="images/vulnhalla_logo.png" alt="Vulnhalla" width="400">
+  <img src="images/h6yseb2b.png" alt="VulnSeeker" width="400">
 </div>
 
 For a detailed overview of the research and motivation behind Vulnhalla, see the official CyberArk Threat Research blog post:
