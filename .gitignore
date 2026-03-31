@@ -53,6 +53,9 @@ output/results/
 output/zip_dbs/
 output/web_tasks/
 
+# Backend runtime data
+backend/output/
+
 # ── Data directory (CodeQL pack lock files) ─────────────────────────────────
 data/queries/**/*.qlx
 data/queries/**/codeql-pack.lock.yml
