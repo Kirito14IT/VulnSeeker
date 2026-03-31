@@ -1,0 +1,49 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light;
+  --vs-bg: #f3f7fb;
+  --vs-bg-accent: #d9ecff;
+  --vs-ink: #0f172a;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(217, 236, 255, 0.9), transparent 34%),
+    radial-gradient(circle at right 20%, rgba(255, 228, 196, 0.75), transparent 28%),
+    linear-gradient(180deg, #eef5fb 0%, #f8fafc 100%);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--vs-ink);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: transparent;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.issue-explorer-table .ant-table-thead > tr > th {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.issue-explorer-table .ant-table-tbody > tr > td {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.issue-explorer-table .ant-tag {
+  margin-inline-end: 0;
+}
