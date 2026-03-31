@@ -1,44 +1,17 @@
-# Python build artifacts
+# ══════════════════════════════════════════════════════════════════════════════
+# VulnSeeker .gitignore
+# Keep: source code, configs, data/templates, documentation, Docker setup
+# Ignore: runtime data, credentials, caches, build artifacts, IDE files
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Python build artifacts ───────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.py[cod]
 *$py.class
-
-# Virtual environments
-venv/
-env/
-ENV/
-.venv/
-
-# Environment variables (contains API keys)
-.env
-.env.local
-.env.*.local
-
-# Data directories (runtime-generated)
-output/databases/
-output/results/
-output/zip_dbs/
-data/queries/**/*.qlx
-data/queries/**/codeql-pack.lock.yml
-
-# IDE / OS files
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-
-# Temp / log files
-*.log
-*.tmp
-*.bak
-
-# Distribution / packaging
+*.so
 .Python
 build/
 develop-eggs/
@@ -57,17 +30,97 @@ wheels/
 *.egg
 MANIFEST
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# ── Virtual environments ─────────────────────────────────────────────────────
+venv/
+env/
+ENV/
+.venv/
+.venv
 
-# pytest
+# ── Environment variables & secrets ─────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+!.env.example
+backend/.env
+backend/.env.local
+backend/.env.*.local
+
+# ── Runtime data directories ──────────────────────────────────────────────────
+# These directories are populated at runtime and should not be committed
+output/databases/
+output/results/
+output/zip_dbs/
+output/web_tasks/
+
+# ── Data directory (CodeQL pack lock files) ─────────────────────────────────
+data/queries/**/*.qlx
+data/queries/**/codeql-pack.lock.yml
+
+# ── Log files ────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── pytest / coverage ─────────────────────────────────────────────────────────
 .pytest_cache/
 .coverage
 htmlcov/
+.jcov
 
-# mypy
+# ── mypy / type checking ─────────────────────────────────────────────────────
 .mypy_cache/
 .dmypy.json
 dmypy.json
+.dmypy sock
 
-# data
+# ── Jupyter Notebook ──────────────────────────────────────────────────────────
+.ipynb_checkpoints
+
+# ── IDE / OS files ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.Directory
+desktop.ini
+ehthumbs.db
+
+# ── Cursor IDE ────────────────────────────────────────────────────────────────
+.cursor/
+
+# ── Temp / backup files ──────────────────────────────────────────────────────
+*.tmp
+*.bak
+*.temp
+*.cache
+*.pid
+*.seed
+
+# ── Frontend dependencies (node_modules) ─────────────────────────────────────
+frontend/node_modules/
+
+# ── Frontend build output ────────────────────────────────────────────────────
+frontend/dist/
+frontend/dist-ssr/
+
+# ── Backend Python cache ─────────────────────────────────────────────────────
+backend/__pycache__/
+backend/.pytest_cache/
+
+# ── Local development / demo repos ──────────────────────────────────────────
+# Individual repos cloned for local analysis
+local_repos/demo_c_project/
+
+# ── Corrupted / malformed directories (Windows path artifacts) ───────────────
+# Pattern matches Windows shell path corruption artifacts
+'C*Users*'/
+
+# ── Poetry ────────────────────────────────────────────────────────────────────
+poetry.lock
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+*.pot          # gettext translation cache
+.mo             # compiled message catalogs
