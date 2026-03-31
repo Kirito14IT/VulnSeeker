@@ -233,6 +233,7 @@ def validate_llm_config_dict(config: Dict[str, Any]) -> bool:
                 "openrouter": "OPENROUTER_API_KEY",
                 "huggingface": "HUGGINGFACE_API_KEY",
                 "cohere": "COHERE_API_KEY",
+                "minimax": "MINIMAX_API_KEY or OPENAI_API_KEY",
             }
             env_var = env_var_map.get(provider, "API_KEY")
             raise ValueError(

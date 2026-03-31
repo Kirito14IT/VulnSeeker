@@ -306,7 +306,7 @@ class ResultsLoader:
             return "unknown/unknown"
 
 
-    def load_all_issues(self, lang: str) -> Tuple[List[Issue], List[str]]:
+    def load_all_issues(self, lang: str, include_raw_only: bool = False) -> Tuple[List[Issue], List[str]]:
         """
         Scan output/results/<lang>/<issue_type>/ and load all issues.
 
@@ -331,11 +331,13 @@ class ResultsLoader:
                 continue
             
             issue_type = issue_type_dir.name
+            finalized_issue_ids = set()
             
             # Find all _final.json files
             for final_file in issue_type_dir.glob("*_final.json"):
                 # Extract issue ID from filename
                 issue_id = final_file.stem.replace("_final", "")
+                finalized_issue_ids.add(issue_id)
                 
                 # Find corresponding _raw.json
                 raw_file = final_file.parent / f"{issue_id}_raw.json"
@@ -396,6 +398,38 @@ class ResultsLoader:
                     final_data=final_data
                 )
                 issues.append(issue)
+
+            if include_raw_only:
+                for raw_file in issue_type_dir.glob("*_raw.json"):
+                    issue_id = raw_file.stem.replace("_raw", "")
+                    if issue_id in finalized_issue_ids:
+                        continue
+
+                    raw_data = self.parse_raw_json(raw_file)
+                    if not raw_data:
+                        errors.append(f"Failed to parse raw JSON: {raw_file}")
+                        continue
+
+                    file_basename, start_line = self._extract_file_info(raw_data)
+                    issue_name = self._extract_issue_name(raw_data, issue_type)
+                    db_path = raw_data.get("db_path", "")
+                    repo = self._extract_repo_from_db_path(db_path) if db_path else "unknown/unknown"
+
+                    issue = Issue(
+                        id=issue_id,
+                        name=issue_name,
+                        file=file_basename,
+                        line=start_line,
+                        status="raw",
+                        issue_type=issue_type,
+                        lang=lang,
+                        repo=repo,
+                        raw_path=str(raw_file),
+                        final_path=str(raw_file.parent / f"{issue_id}_final.json"),
+                        raw_data=raw_data,
+                        final_data=None
+                    )
+                    issues.append(issue)
         
         return issues, errors
 

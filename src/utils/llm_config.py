@@ -135,12 +135,19 @@ def load_llm_config() -> Dict[str, Any]:
         provider = "openai"
 
     elif provider == "minimax":
-        # MiniMax supports OpenAI-compatible API at https://api.minimaxi.com/v1
-        # Docs: https://platform.minimaxi.com/docs
-        api_key = os.getenv("MINIMAX_API_KEY") or os.getenv("OPENROUTER_API_KEY")
-        endpoint = "https://api.minimaxi.com/v1"
-        # Force OpenAI as the effective provider for OpenAI-compatible base URL
-        provider = "openai"
+        # LiteLLM has a native MiniMax provider. Route through it directly
+        # instead of pretending MiniMax is "openai", which breaks provider
+        # resolution for newer MiniMax model IDs like "MiniMax-M2.7".
+        #
+        # Accept both LiteLLM-style env vars and MiniMax's OpenAI-compatible
+        # docs-style env vars as fallbacks.
+        api_key = os.getenv("MINIMAX_API_KEY") or os.getenv("OPENAI_API_KEY")
+        endpoint = (
+            os.getenv("MINIMAX_API_BASE")
+            or os.getenv("OPENAI_BASE_URL")
+            or os.getenv("OPENAI_API_BASE")
+            or "https://api.minimaxi.com/v1"
+        )
     
     elif provider == "huggingface":
         api_key = os.getenv("HUGGINGFACE_API_KEY")

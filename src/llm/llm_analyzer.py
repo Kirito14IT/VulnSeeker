@@ -185,6 +185,100 @@ class LLMAnalyzer:
             },
         ]
 
+    @staticmethod
+    def _is_retryable_llm_error(error: Exception) -> bool:
+        message = str(error).lower()
+        non_retryable_markers = (
+            "bad_request_error",
+            "invalid params",
+            '"http_code":"400"',
+            '"http_code": "400"',
+            '"http_code":"401"',
+            '"http_code": "401"',
+            '"http_code":"403"',
+            '"http_code": "403"',
+            '"http_code":"404"',
+            '"http_code": "404"',
+        )
+        if any(marker in message for marker in non_retryable_markers):
+            return False
+
+        api_connection_error = getattr(litellm, "APIConnectionError", None)
+        if api_connection_error and isinstance(error, api_connection_error):
+            return True
+        if isinstance(error, litellm.Timeout):
+            return True
+
+        retryable_markers = (
+            "unexpected eof while reading",
+            "ssl",
+            "connection reset",
+            "connection aborted",
+            "connection closed",
+            "temporarily unavailable",
+            "timed out",
+        )
+        return any(marker in message for marker in retryable_markers)
+
+    def _sleep_before_retry(self, attempt: int) -> None:
+        time.sleep(min(2 ** attempt, 10))
+
+    def _uses_minimax_provider(self) -> bool:
+        provider = (self.config or {}).get("provider")
+        return provider == "minimax" or bool(self.model and self.model.startswith("minimax/"))
+
+    @staticmethod
+    def _join_system_content(existing: Optional[str], new_content: str) -> str:
+        if existing and existing.strip():
+            return f"{existing.rstrip()}\n\n{new_content}"
+        return new_content
+
+    def _collapse_system_messages_for_minimax(
+        self, messages: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        if not self._uses_minimax_provider():
+            return messages
+
+        merged_system_content: Optional[str] = None
+        normalized_messages: List[Dict[str, Any]] = []
+
+        for message in messages:
+            if message.get("role") == "system":
+                content = message.get("content")
+                if content:
+                    merged_system_content = self._join_system_content(
+                        merged_system_content, str(content)
+                    )
+                continue
+            normalized_messages.append(dict(message))
+
+        if merged_system_content:
+            normalized_messages.insert(
+                0,
+                {
+                    "role": "system",
+                    "content": merged_system_content,
+                },
+            )
+
+        return normalized_messages
+
+    def _append_system_message(
+        self, messages: List[Dict[str, Any]], content: str
+    ) -> None:
+        if not self._uses_minimax_provider():
+            messages.append({"role": "system", "content": content})
+            return
+
+        for message in messages:
+            if message.get("role") == "system":
+                message["content"] = self._join_system_content(
+                    message.get("content"), content
+                )
+                return
+
+        messages.insert(0, {"role": "system", "content": content})
+
     def init_llm_client(self, config: Optional[Dict[str, Any]] = None) -> None:
         """
         Initialize the LLM configuration for LiteLLM.
@@ -253,12 +347,16 @@ class LLMAnalyzer:
             "huggingface": "HUGGINGFACE_API_KEY",
             "cohere": "COHERE_API_KEY",
             "gemini": "GOOGLE_API_KEY",
+            "minimax": "MINIMAX_API_KEY",
         }
         
         # Handle providers with simple API key mapping
         if provider in API_KEY_ENV_VARS:
             if api_key:
                 os.environ[API_KEY_ENV_VARS[provider]] = api_key
+                if provider == "gemini":
+                    # Some LiteLLM / SDK paths still check GEMINI_API_KEY directly.
+                    os.environ["GEMINI_API_KEY"] = api_key
                 # Cohere also sets CO_API_KEY for compatibility
                 if provider == "cohere":
                     os.environ["CO_API_KEY"] = api_key
@@ -266,6 +364,8 @@ class LLMAnalyzer:
                 # also set OPENAI_API_BASE so litellm routes correctly
                 if provider == "openai" and self.config.get("api_base"):
                     os.environ["OPENAI_API_BASE"] = self.config["api_base"]
+                if provider == "minimax" and self.config.get("api_base"):
+                    os.environ["MINIMAX_API_BASE"] = self.config["api_base"]
         
         # Handle Azure (requires endpoint and api_version)
         elif provider == "azure":
@@ -382,21 +482,26 @@ class LLMAnalyzer:
                 response = litellm.completion(
                     model=model_name,
                     messages=[{"role": "user", "content": args_prompt}],
-                    timeout=self.timeout
+                    timeout=self.timeout,
+                    api_key=self.api_key,
+                    api_base=self.config.get("api_base") if self.config else None,
                 )
                 return response.choices[0].message
-            except litellm.Timeout as e:
-                if attempt == self.max_retries:
-                    raise LLMApiError(f"LLM API request timed out after {self.max_retries} attempts ({self.timeout}s each): {e}") from e
-                logger.warning("LLM timeout (attempt %d/%d), retrying...", attempt, self.max_retries)
-                time.sleep(2 ** attempt)  # exponential backoff
-            except litellm.RateLimitError as e:
-                raise LLMApiError(f"Rate limit exceeded for LLM API: {e}") from e
-            except litellm.AuthenticationError as e:
-                raise LLMApiError(f"LLM API authentication failed: {e}") from e
-            except litellm.APIError as e:
-                raise LLMApiError(f"LLM API error: {e}") from e
             except Exception as e:
+                if self._is_retryable_llm_error(e) and attempt < self.max_retries:
+                    logger.warning("Retryable LLM error in helper call (attempt %d/%d): %s", attempt, self.max_retries, e)
+                    self._sleep_before_retry(attempt)
+                    continue
+                if isinstance(e, litellm.Timeout):
+                    raise LLMApiError(f"LLM API request timed out after {self.max_retries} attempts ({self.timeout}s each): {e}") from e
+                if isinstance(e, litellm.APIConnectionError):
+                    raise LLMApiError(f"LLM API connection failed: {e}") from e
+                if isinstance(e, litellm.RateLimitError):
+                    raise LLMApiError(f"Rate limit exceeded for LLM API: {e}") from e
+                if isinstance(e, litellm.AuthenticationError):
+                    raise LLMApiError(f"LLM API authentication failed: {e}") from e
+                if isinstance(e, litellm.APIError):
+                    raise LLMApiError(f"LLM API error: {e}") from e
                 raise LLMApiError(f"Unexpected error during LLM API call: {e}") from e
 
 
@@ -443,6 +548,7 @@ class LLMAnalyzer:
 
         messages: List[Dict[str, Any]] = self.MESSAGES[:]
         messages.append({"role": "user", "content": prompt})
+        messages = self._collapse_system_messages_for_minimax(messages)
 
         amount_of_tools = 0
         final_content = ""
@@ -455,8 +561,13 @@ class LLMAnalyzer:
                     "model": self.model,
                     "messages": messages,
                     "tools": self.tools,
-                    "timeout": self.timeout
+                    "timeout": self.timeout,
                 }
+
+                if self.api_key:
+                    completion_kwargs["api_key"] = self.api_key
+                if self.config and self.config.get("api_base"):
+                    completion_kwargs["api_base"] = self.config["api_base"]
 
                 # Check if using Bedrock (model starts with "bedrock/" or contains "arn:aws:bedrock")
                 is_bedrock = (
@@ -475,27 +586,32 @@ class LLMAnalyzer:
                     try:
                         response = litellm.completion(**completion_kwargs)
                         break  # success
-                    except litellm.Timeout as e:
-                        if attempt == self.max_retries:
-                            raise  # bubble out to outer except
-                        logger.warning("LLM timeout (attempt %d/%d), retrying...", attempt, self.max_retries)
-                        time.sleep(2 ** attempt)  # exponential backoff
-                    except litellm.RateLimitError as e:
-                        raise LLMApiError(f"Rate limit exceeded for LLM API: {e}") from e
-                    except litellm.AuthenticationError as e:
-                        raise LLMApiError(f"LLM API authentication failed: {e}") from e
-                    except litellm.APIError as e:
-                        raise LLMApiError(f"LLM API error: {e}") from e
                     except Exception as e:
-                        raise LLMApiError(f"Unexpected error during LLM API call: {e}") from e
+                        if self._is_retryable_llm_error(e) and attempt < self.max_retries:
+                            logger.warning("Retryable LLM error (attempt %d/%d): %s", attempt, self.max_retries, e)
+                            self._sleep_before_retry(attempt)
+                            continue
+                        if isinstance(e, litellm.APIConnectionError):
+                            raise LLMApiError(f"LLM API connection failed: {e}") from e
+                        if isinstance(e, litellm.RateLimitError):
+                            raise LLMApiError(f"Rate limit exceeded for LLM API: {e}") from e
+                        if isinstance(e, litellm.AuthenticationError):
+                            raise LLMApiError(f"LLM API authentication failed: {e}") from e
+                        if isinstance(e, litellm.APIError):
+                            raise LLMApiError(f"LLM API error: {e}") from e
+                        raise
             except litellm.RateLimitError as e:
                 raise LLMApiError(f"Rate limit exceeded for LLM API: {e}") from e
             except litellm.Timeout as e:
                 raise LLMApiError(f"LLM API request timed out after {self.max_retries} attempts ({self.timeout}s each): {e}") from e
+            except litellm.APIConnectionError as e:
+                raise LLMApiError(f"LLM API connection failed: {e}") from e
             except litellm.AuthenticationError as e:
                 raise LLMApiError(f"LLM API authentication failed: {e}") from e
             except litellm.APIError as e:
                 raise LLMApiError(f"LLM API error: {e}") from e
+            except LLMApiError:
+                raise
             except Exception as e:
                 raise LLMApiError(f"Unexpected error during LLM API call: {e}") from e
             
@@ -517,10 +633,7 @@ class LLMAnalyzer:
                 if final_content and any(code in final_content for code in ["1337", "1007", "7331", "3713"]):
                     got_answer = True
                 else:
-                    messages.append({
-                        "role": "system",
-                        "content": "Please follow all the instructions!"
-                    })
+                    self._append_system_message(messages, "Please follow all the instructions!")
             else:
                 amount_of_tools += 1
                 arg_messages: List[Dict[str, Any]] = []
@@ -617,12 +730,12 @@ class LLMAnalyzer:
                 messages += arg_messages
 
                 if amount_of_tools >= 6:
-                    messages.append({
-                        "role": "system",
-                        "content": (
+                    self._append_system_message(
+                        messages,
+                        (
                             "You called too many tools! If you still can't give a clear answer, "
                             "return the 'more data' status."
-                        )
-                    })
+                        ),
+                    )
 
         return messages, final_content

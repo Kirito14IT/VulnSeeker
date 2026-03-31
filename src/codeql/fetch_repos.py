@@ -14,11 +14,12 @@ import sys
 import json
 import time
 import zipfile
+import shutil
 import requests
 from typing import Any, Dict, List
 from pySmartDL import SmartDL
 
-from src.utils.common_functions import read_file, write_file_text, get_all_dbs
+from src.utils.common_functions import read_file, read_yml, write_file_text, get_all_dbs
 from src.utils.config import get_github_token, get_github_api_url, get_github_ssl_verify, get_codeql_path
 from src.utils.logger import get_logger
 from src.utils.exceptions import CodeQLError, CodeQLConfigError, CodeQLExecutionError
@@ -658,6 +659,44 @@ def build_local_codeql_db(
     if not source.is_dir():
         raise CodeQLConfigError(f"Source path is not a directory: {source_path}")
 
+    def is_finalized_database(db_path: Path) -> bool:
+        config_path = db_path / "codeql-database.yml"
+        if not config_path.exists():
+            return False
+        try:
+            config = read_yml(str(config_path))
+        except Exception:
+            return False
+        return bool(config.get("finalised")) and "inProgress" not in config
+
+    def prepare_clean_rebuild(db_path: Path) -> None:
+        if not db_path.exists():
+            return
+        try:
+            shutil.rmtree(db_path)
+        except PermissionError as e:
+            raise CodeQLError(f"Permission denied removing incomplete database directory: {db_path}") from e
+        except OSError as e:
+            raise CodeQLError(f"OS error removing incomplete database directory: {db_path}") from e
+
+    def infer_build_command(source_root: Path) -> str | None:
+        for candidate in ("Makefile", "makefile", "GNUmakefile"):
+            if (source_root / candidate).exists():
+                clean_cmd = ["make", "clean"]
+                try:
+                    subprocess.run(
+                        clean_cmd,
+                        cwd=str(source_root),
+                        check=False,
+                        text=True,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                except OSError:
+                    pass
+                return f"make -j{threads}"
+        return None
+
     # Infer repo_name from directory name
     repo_name = source.name
     db_folder = Path("output/databases") / lang
@@ -665,11 +704,20 @@ def build_local_codeql_db(
 
     # Check if database already exists
     if db_output.exists() and not force:
-        logger.info(
-            "Database already exists at %s, skipping build (use --force to rebuild)",
+        if is_finalized_database(db_output):
+            logger.info(
+                "Database already exists at %s, skipping build (use --force to rebuild)",
+                db_output
+            )
+            return str(db_output)
+        logger.warning(
+            "Database at %s exists but is incomplete. Removing it and rebuilding.",
             db_output
         )
-        return str(db_output)
+        prepare_clean_rebuild(db_output)
+    elif db_output.exists() and force:
+        logger.info("Force rebuild requested. Removing existing database at %s", db_output)
+        prepare_clean_rebuild(db_output)
 
     # Ensure output directory exists
     try:
@@ -681,21 +729,30 @@ def build_local_codeql_db(
 
     # Map 'c' to 'cpp' for CodeQL language argument
     codeql_lang = "cpp" if lang == "c" else lang
+    build_command = infer_build_command(source)
 
     logger.info("Building CodeQL database for: %s", source_path)
     logger.info("Language: %s | Output: %s | Threads: %d", codeql_lang, db_output, threads)
+    if build_command:
+        logger.info("Using explicit build command for local source: %s", build_command)
+    else:
+        logger.info("No supported build script detected. Falling back to CodeQL autobuild.")
 
     try:
+        cmd = [
+            codeql_bin,
+            "database",
+            "create",
+            str(db_output),
+            "--source-root", str(source),
+            "--language", codeql_lang,
+            f"--threads={threads}",
+        ]
+        if build_command:
+            cmd.extend(["--command", build_command])
+
         subprocess.run(
-            [
-                codeql_bin,
-                "database",
-                "create",
-                str(db_output),
-                "--source-root", str(source),
-                "--language", codeql_lang,
-                f"--threads={threads}"
-            ],
+            cmd,
             check=True,
             text=True,
             stdout=subprocess.PIPE,
@@ -712,6 +769,12 @@ def build_local_codeql_db(
             f"CodeQL returned exit code {e.returncode}.\n"
             f"Stdout:\n{e.stdout}"
         ) from e
+
+    if not is_finalized_database(db_output):
+        raise CodeQLExecutionError(
+            "CodeQL database creation finished but the database was not finalized. "
+            "This usually means the project build did not compile any source files."
+        )
 
     logger.info("[+] CodeQL database built successfully at: %s", db_output)
     return str(db_output)
