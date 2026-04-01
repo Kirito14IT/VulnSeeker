@@ -20,7 +20,7 @@ from src.codeql.run_codeql_queries import compile_and_run_codeql_queries
 from src.utils.config import get_codeql_path
 from src.utils.config_validator import validate_and_exit_on_error
 from src.utils.common_functions import get_all_dbs
-from src.vulnhalla import IssueAnalyzer
+from src.vulnseeker import IssueAnalyzer
 
 
 def parse_args() -> argparse.Namespace:

@@ -16,7 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.ui.models import Issue
 from src.utils.logger import get_logger
-from src.utils.exceptions import VulnhallaError
+from src.utils.exceptions import VulnSeekerError
 
 logger = get_logger(__name__)
 

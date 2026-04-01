@@ -1,9 +1,9 @@
-"""Base exception class for all Vulnhalla-specific errors."""
+"""Base exception class for all VulnSeeker-specific errors."""
 
 
-class VulnhallaError(Exception):
+class VulnSeekerError(Exception):
     """
-    Base exception for all Vulnhalla-specific errors.
+    Base exception for all VulnSeeker-specific errors.
 
     Args:
         message: Human-readable error message.
@@ -13,6 +13,6 @@ class VulnhallaError(Exception):
         super().__init__(message)
         self.cause = cause
         if cause is not None:
-            # Enables chained traceback: VulnhallaError <- cause
+            # Enables chained traceback: VulnSeekerError <- cause
             self.__cause__ = cause
 

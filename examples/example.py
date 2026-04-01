@@ -2,7 +2,7 @@
 """
 example.py
 ----------
-Example usage of Vulnhalla - demonstrates a full pipeline run for multiple repositories.
+Example usage of VulnSeeker - demonstrates a full pipeline run for multiple repositories.
 
 This example processes two repositories using the analyze_pipeline function,
 which handles:
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 def main():
     """
-    Run an end-to-end example of the Vulnhalla pipeline for multiple repositories.
+    Run an end-to-end example of the VulnSeeker pipeline for multiple repositories.
 
     This function processes two demo repositories using the analyze_pipeline function.
     Each repository goes through the complete pipeline:
@@ -40,7 +40,7 @@ def main():
     """
     # Initialize logging
     setup_logging()
-    logger.info("Starting Vulnhalla pipeline example... This may take a few minutes.")
+    logger.info("Starting VulnSeeker pipeline example... This may take a few minutes.")
     logger.info("")
     
     # Process videolan/vlc

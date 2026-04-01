@@ -1,16 +1,16 @@
-# Contributing to Vulnhalla
+# Contributing to VulnSeeker
 
-Thank you for your interest in contributing to Vulnhalla! We are always delighted to welcome new contributors!
+Thank you for your interest in contributing to VulnSeeker! We are always delighted to welcome new contributors!
 
 For general contributions and community guidelines, please see the [cyberark community documentation](https://github.com/cyberark/community/).
 
 ## Found an Issue?
 
-If you have found a bug, please raise an issue on the Vulnhalla repo: https://github.com/cyberark/Vulnhalla/issues
+If you have found a bug, please raise an issue on the VulnSeeker repo: https://github.com/Kirito14IT/VulnSeeker/issues
 
 ## Found a Vulnerability?
 
-If you think you have found a vulnerability in Vulnhalla, please refer to [Security](SECURITY.md)
+If you think you have found a vulnerability in VulnSeeker, please refer to [Security](SECURITY.md)
 
 We are always very grateful to researchers who report vulnerabilities responsibly.
 
@@ -41,8 +41,8 @@ We recommend using Python 3.10 – 3.13. Python 3.14+ is not supported (grpcio w
 
 ```
 # Clone the repository (fork)
-git clone https://github.com/cyberark/Vulnhalla.git
-cd Vulnhalla
+git clone https://github.com/Kirito14IT/VulnSeeker.git
+cd VulnSeeker
 ```
 
 3. Install the project's requirements and configure your environment. See [README.md](README.md) for detailed instructions on installing dependencies, setting up CodeQL packs, and configuring your `.env` file.
@@ -79,7 +79,7 @@ Before reporting issues, please:
 
 ## Logging Guidelines
 
-Vulnhalla uses centralized logging. Always use `get_logger(__name__)` instead of `print()` for application messages.
+VulnSeeker uses centralized logging. Always use `get_logger(__name__)` instead of `print()` for application messages.
 
 ### Basic Usage
 
@@ -149,6 +149,6 @@ Releases should only be created by our core maintainers.
 
 ## Legal
 
-Any submission of work, including any modification of, or addition to, an existing work ("Contribution") to "Vulnhalla" shall be governed by and subject to the terms of the Apache License, Version 2.0 (the "License") and to the following complementary terms. In case of any conflict or inconsistency between the provisions of the License and the complementary terms, the complementary terms shall prevail. By submitting the Contribution, you represent and warrant that the Contribution is your original creation and you own all right, title and interest in the Contribution. You represent that you are legally entitled to grant the rights set out in the License and herein, without violation of, or conflict with, the rights of any other party. You represent that your Contribution includes complete details of any third-party license or other restriction associated with any part of your Contribution of which you are personally aware.
+Any submission of work, including any modification of, or addition to, an existing work ("Contribution") to "VulnSeeker" shall be governed by and subject to the terms of the Apache License, Version 2.0 (the "License") and to the following complementary terms. In case of any conflict or inconsistency between the provisions of the License and the complementary terms, the complementary terms shall prevail. By submitting the Contribution, you represent and warrant that the Contribution is your original creation and you own all right, title and interest in the Contribution. You represent that you are legally entitled to grant the rights set out in the License and herein, without violation of, or conflict with, the rights of any other party. You represent that your Contribution includes complete details of any third-party license or other restriction associated with any part of your Contribution of which you are personally aware.
 
 ## das

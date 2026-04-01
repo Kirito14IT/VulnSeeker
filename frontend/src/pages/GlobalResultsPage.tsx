@@ -89,7 +89,7 @@ export default function GlobalResultsPage() {
             Legacy Global Results
           </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Web version of the old `vulnhalla-ui` browser, backed by the shared root `output/results`.
+            Web version of the old `vulnseeker-ui` browser, backed by the shared root `output/results`.
           </Paragraph>
         </Space>
       </Card>

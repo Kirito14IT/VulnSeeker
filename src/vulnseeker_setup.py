@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Vulnhalla Setup Command - CodeQL Configuration and Pack Installation
+VulnSeeker Setup Command - CodeQL Configuration and Pack Installation
 
-This module provides the `vulnhalla-setup` Poetry CLI command that:
+This module provides the `vulnseeker-setup` Poetry CLI command that:
 - Validates CodeQL configuration
 - Installs required CodeQL packs
 
@@ -26,11 +26,11 @@ logger = get_logger(__name__)
 
 def main() -> None:
     """
-    Main entry point for vulnhalla-setup command.
+    Main entry point for vulnseeker-setup command.
     
     Validates CodeQL configuration and installs CodeQL packs.
     """
-    logger.info("Vulnhalla Setup")
+    logger.info("VulnSeeker Setup")
     logger.info("=" * 50)
     
     # Install CodeQL packs
@@ -96,7 +96,7 @@ def main() -> None:
         logger.error("[-] CodeQL CLI not found. Skipping CodeQL pack installation.")
         logger.info("Install CodeQL CLI from: https://github.com/github/codeql-cli-binaries/releases")
         logger.info("After installation, either add CodeQL to your PATH or set CODEQL_PATH in your .env file.")
-        logger.info("Then run: poetry run vulnhalla-setup or install packages manually")
+        logger.info("Then run: poetry run vulnseeker-setup or install packages manually")
         return
     
     # Optional: Validate CodeQL configuration if .env file exists
@@ -123,8 +123,8 @@ def main() -> None:
         logger.info("2. Run one of the following commands to start the pipeline:")
     else:
         logger.info("Run one of the following commands to start the pipeline:")
-    logger.info("   • poetry run vulnhalla <org/repo>    # Analyze a specific repository")
-    logger.info("   • poetry run vulnhalla-example       # See a full pipeline run")
+    logger.info("   • poetry run vulnseeker <org/repo>    # Analyze a specific repository")
+    logger.info("   • poetry run vulnseeker-example       # See a full pipeline run")
 
 
 if __name__ == "__main__":

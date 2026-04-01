@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Vulnhalla UI - User Interface for browsing analysis results.
+VulnSeeker UI - User Interface for browsing analysis results.
 
 This module provides a three-panel UI for viewing and exploring
-CodeQL analysis results processed by Vulnhalla.
+CodeQL analysis results processed by VulnSeeker.
 """
 
 import re
@@ -45,9 +45,9 @@ from src.ui.components.issues_list_panel import IssuesListPanel
 from src.ui.components.details_panel import DetailsPanel
 
 
-class VulnhallaUI(App):
+class VulnSeekerUI(App):
     """
-    Main UI application for Vulnhalla.
+    Main UI application for VulnSeeker.
     """
     
     CSS = """
@@ -84,7 +84,7 @@ class VulnhallaUI(App):
     
     def __init__(self) -> None:
         """
-        Initialize the VulnhallaUI application.
+        Initialize the VulnSeekerUI application.
         """
         super().__init__()
         self.loader = ResultsLoader()
@@ -673,7 +673,7 @@ def main() -> None:
     """
     Entry point for running the UI.
     """
-    app = VulnhallaUI()
+    app = VulnSeekerUI()
     app.run()
 
 

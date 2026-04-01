@@ -56,7 +56,7 @@ def extract_line_number_from_location(issue: Issue) -> Optional[int]:
 
 def extract_code_blocks_from_text(text: str) -> List[str]:
     """
-    Extract Vulnhalla code blocks from text.
+    Extract VulnSeeker code blocks from text.
 
     Args:
         text (str): Text containing code blocks in format "file: ..." followed by 

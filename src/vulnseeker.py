@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Core analysis engine for Vulnhalla.
+Core analysis engine for VulnSeeker.
 
 This module coordinates the aggregation of raw CodeQL findings and their
 classification by an LLM. It loads issues from CodeQL result files,
@@ -34,7 +34,7 @@ from src.utils.common_functions import (
 from src.llm.llm_analyzer import LLMAnalyzer
 from src.utils.config_validator import validate_and_exit_on_error
 from src.utils.logger import get_logger
-from src.utils.exceptions import VulnhallaError, CodeQLError, LLMApiError
+from src.utils.exceptions import VulnSeekerError, CodeQLError, LLMApiError
 
 logger = get_logger(__name__)
 
@@ -289,7 +289,7 @@ class IssueAnalyzer:
             str: A final prompt string with the template + hints + snippet + code.
         
         Raises:
-            VulnhallaError: If template files cannot be read (not found, permission denied, etc.).
+            VulnSeekerError: If template files cannot be read (not found, permission denied, etc.).
         """
         # If language is 'c', many queries are stored under 'cpp'
         lang_folder = "cpp" if self.lang == "c" else self.lang
@@ -335,7 +335,7 @@ class IssueAnalyzer:
             dirs (List[str]): A list of directory paths to create if missing.
         
         Raises:
-            VulnhallaError: If directory creation fails (permission denied, etc.).
+            VulnSeekerError: If directory creation fails (permission denied, etc.).
         """
         for d in dirs:
             dir_path = Path(d)
@@ -343,9 +343,9 @@ class IssueAnalyzer:
                 try:
                     dir_path.mkdir(parents=True, exist_ok=True)
                 except PermissionError as e:
-                    raise VulnhallaError(f"Permission denied creating directory: {d}") from e
+                    raise VulnSeekerError(f"Permission denied creating directory: {d}") from e
                 except OSError as e:
-                    raise VulnhallaError(f"OS error creating directory: {d}") from e
+                    raise VulnSeekerError(f"OS error creating directory: {d}") from e
 
 
     # ----------------------------------------------------------------------
@@ -372,7 +372,7 @@ class IssueAnalyzer:
             issue_id (int): The numeric ID of the current issue.
         
         Raises:
-            VulnhallaError: If file cannot be written (permission denied, etc.).
+            VulnSeekerError: If file cannot be written (permission denied, etc.).
         """
         raw_data = json.dumps({
             "function_tree_file": function_tree_file,
@@ -524,7 +524,7 @@ class IssueAnalyzer:
         
         Raises:
             CodeQLError: If database files cannot be read (YAML, ZIP, CSV, etc.).
-            VulnhallaError: If result files cannot be written.
+            VulnSeekerError: If result files cannot be written.
             LLMError: If LLM analysis fails.
         """
         results_folder = Path("output/results") / self.lang / issue_type.replace(" ", "_").replace("/", "-")
@@ -663,7 +663,7 @@ class IssueAnalyzer:
             
         Raises:
             CodeQLError: If database files cannot be accessed or read.
-            VulnhallaError: If directory creation or file writing fails.
+            VulnSeekerError: If directory creation or file writing fails.
             LLMError: If LLM initialization or analysis fails.
         """
         # Validate configuration before starting

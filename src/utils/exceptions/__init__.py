@@ -1,6 +1,6 @@
-"""Vulnhalla exception hierarchy."""
+"""VulnSeeker exception hierarchy."""
 
-from src.utils.exceptions.base import VulnhallaError
+from src.utils.exceptions.base import VulnSeekerError
 from src.utils.exceptions.codeql import (
     CodeQLError,
     CodeQLConfigError,
@@ -13,7 +13,7 @@ from src.utils.exceptions.llm import (
 )
 
 __all__ = [
-    "VulnhallaError",
+    "VulnSeekerError",
     "CodeQLError",
     "CodeQLConfigError",
     "CodeQLExecutionError",

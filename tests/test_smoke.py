@@ -9,6 +9,6 @@ def test_can_import_src():
     """Test that we can import the main project modules."""
     
     from src.utils.common_functions import read_file
-    from src.vulnhalla import IssueAnalyzer
+    from src.vulnseeker import IssueAnalyzer
     from src.llm.llm_analyzer import LLMAnalyzer
     assert read_file and IssueAnalyzer and LLMAnalyzer

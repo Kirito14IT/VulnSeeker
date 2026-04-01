@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "vulnhalla"
+name = "vulnseeker"
 version = "0.1.0"
 description = "Automated CodeQL Analysis with LLM Classification"
 readme = "README.md"
 license = "Apache-2.0"
 authors = ["CyberArk Software Ltd. <info@cyberark.com>"]
-repository = "https://github.com/cyberark/Vulnhalla"
+repository = "https://github.com/Kirito14IT/VulnSeeker"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.14"
@@ -27,12 +27,12 @@ types-requests = "^2.31.0"
 types-PyYAML = "^6.0"
 
 [tool.poetry.scripts]
-vulnhalla-setup = "src.vulnhalla_setup:main"
-vulnhalla = "src.pipeline:main_analyze"
-vulnhalla-ui = "src.pipeline:main_ui"
-vulnhalla-validate = "src.pipeline:main_validate"
-vulnhalla-list = "src.pipeline:main_list"
-vulnhalla-example = "src.pipeline:main_example"
+vulnseeker-setup = "src.vulnseeker_setup:main"
+vulnseeker = "src.pipeline:main_analyze"
+vulnseeker-ui = "src.pipeline:main_ui"
+vulnseeker-validate = "src.pipeline:main_validate"
+vulnseeker-list = "src.pipeline:main_list"
+vulnseeker-example = "src.pipeline:main_example"
 
 [build-system]
 requires = ["poetry-core"]
@@ -83,7 +83,7 @@ disable_error_code = ["attr-defined"]
 # Main modules have some legacy typing issues to fix later
 [[tool.mypy.overrides]]
 module = [
-    "src.vulnhalla",
+    "src.vulnseeker",
     "src.pipeline",
 ]
 disable_error_code = ["arg-type", "call-arg", "operator"]
@@ -92,7 +92,7 @@ disable_error_code = ["arg-type", "call-arg", "operator"]
 [[tool.mypy.overrides]]
 module = [
     "src.utils.logger",
-    "src.vulnhalla_setup",
+    "src.vulnseeker_setup",
 ]
 disable_error_code = ["union-attr"]
 

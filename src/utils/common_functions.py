@@ -1,5 +1,5 @@
 """
-Common utility functions for Vulnhalla.
+Common utility functions for VulnSeeker.
 
 This module provides reusable helpers for file and path handling,
 working with CodeQL database directories, and other small I/O utilities
@@ -11,7 +11,7 @@ import zipfile
 import yaml
 from typing import Any, Dict, List 
 
-from src.utils.exceptions import VulnhallaError, CodeQLError
+from src.utils.exceptions import VulnSeekerError, CodeQLError
 
 
 def read_file(file_name: str) -> str:
@@ -25,19 +25,19 @@ def read_file(file_name: str) -> str:
         str: The contents of the file, decoded as UTF-8.
     
     Raises:
-        VulnhallaError: If file cannot be read (not found, permission denied, encoding error).
+        VulnSeekerError: If file cannot be read (not found, permission denied, encoding error).
     """
     try:
         with Path(file_name).open("r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError as e:
-        raise VulnhallaError(f"File not found: {file_name}") from e
+        raise VulnSeekerError(f"File not found: {file_name}") from e
     except PermissionError as e:
-        raise VulnhallaError(f"Permission denied reading file: {file_name}") from e
+        raise VulnSeekerError(f"Permission denied reading file: {file_name}") from e
     except UnicodeDecodeError as e:
-        raise VulnhallaError(f"Failed to decode file as UTF-8: {file_name}") from e
+        raise VulnSeekerError(f"Failed to decode file as UTF-8: {file_name}") from e
     except OSError as e:
-        raise VulnhallaError(f"OS error while reading file: {file_name}") from e
+        raise VulnSeekerError(f"OS error while reading file: {file_name}") from e
 
 
 def write_file_text(file_name: str, data: str) -> None:
@@ -49,15 +49,15 @@ def write_file_text(file_name: str, data: str) -> None:
         data (str): The string data to write to the file.
     
     Raises:
-        VulnhallaError: If file cannot be written (permission denied, disk full, etc.).
+        VulnSeekerError: If file cannot be written (permission denied, disk full, etc.).
     """
     try:
         with Path(file_name).open("w", encoding="utf-8") as f:
             f.write(data)
     except PermissionError as e:
-        raise VulnhallaError(f"Permission denied writing file: {file_name}") from e
+        raise VulnSeekerError(f"Permission denied writing file: {file_name}") from e
     except OSError as e:
-        raise VulnhallaError(f"OS error while writing file: {file_name}") from e
+        raise VulnSeekerError(f"OS error while writing file: {file_name}") from e
 
 
 def write_file_ascii(file_name: str, data: str) -> None:
@@ -71,15 +71,15 @@ def write_file_ascii(file_name: str, data: str) -> None:
         data (str): The string data to write (non-ASCII chars ignored).
     
     Raises:
-        VulnhallaError: If file cannot be written (permission denied, disk full, etc.).
+        VulnSeekerError: If file cannot be written (permission denied, disk full, etc.).
     """
     try:
         with Path(file_name).open("wb") as f:
             f.write(data.encode("ascii", "ignore"))
     except PermissionError as e:
-        raise VulnhallaError(f"Permission denied writing file: {file_name}") from e
+        raise VulnSeekerError(f"Permission denied writing file: {file_name}") from e
     except OSError as e:
-        raise VulnhallaError(f"OS error while writing file: {file_name}") from e
+        raise VulnSeekerError(f"OS error while writing file: {file_name}") from e
 
 
 def get_all_dbs(dbs_folder: str) -> List[str]:
@@ -151,16 +151,16 @@ def read_yml(file_path: str) -> Dict[str, Any]:
         Dict[str, Any]: The YAML data as a dictionary.
     
     Raises:
-        VulnhallaError: If file cannot be read or YAML parsing fails.
+        VulnSeekerError: If file cannot be read or YAML parsing fails.
     """
     try:
         with Path(file_path).open('r', encoding="utf-8") as file:
             return yaml.safe_load(file)
     except FileNotFoundError as e:
-        raise VulnhallaError(f"YAML file not found: {file_path}") from e
+        raise VulnSeekerError(f"YAML file not found: {file_path}") from e
     except PermissionError as e:
-        raise VulnhallaError(f"Permission denied reading YAML file: {file_path}") from e
+        raise VulnSeekerError(f"Permission denied reading YAML file: {file_path}") from e
     except yaml.YAMLError as e:
-        raise VulnhallaError(f"Failed to parse YAML file: {file_path}") from e
+        raise VulnSeekerError(f"Failed to parse YAML file: {file_path}") from e
     except OSError as e:
-        raise VulnhallaError(f"OS error while reading YAML file: {file_path}") from e
+        raise VulnSeekerError(f"OS error while reading YAML file: {file_path}") from e

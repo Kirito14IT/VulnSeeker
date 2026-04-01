@@ -197,7 +197,7 @@ export default function DashboardPage() {
             <Space direction="vertical" size={8}>
               <Tag color="cyan">CLI Helpers</Tag>
               <Title level={4} style={{ margin: 0 }}>Stats & Validation</Title>
-              <Text type="secondary">Use the web equivalents of `vulnhalla-list` and `vulnhalla-validate`.</Text>
+              <Text type="secondary">Use the web equivalents of `vulnseeker-list` and `vulnseeker-validate`.</Text>
             </Space>
           </Card>
         </Col>

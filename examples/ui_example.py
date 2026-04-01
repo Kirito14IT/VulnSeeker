@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Entry point for running the Vulnhalla UI.
+Entry point for running the VulnSeeker UI.
 
 Usage:
     python examples/ui_example.py

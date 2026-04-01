@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Splitter divider component for Vulnhalla UI.
+Splitter divider component for VulnSeeker UI.
 """
 
 from textual.widget import Widget
@@ -28,7 +28,7 @@ class SplitterDivider(Widget):
         Initialize the SplitterDivider.
 
         Args:
-            app_instance: Reference to the VulnhallaUI app instance for updating split position.
+            app_instance: Reference to the VulnSeekerUI app instance for updating split position.
         """
         super().__init__()
         self.app_instance = app_instance

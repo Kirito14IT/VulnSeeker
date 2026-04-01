@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Data models for Vulnhalla UI.
+Data models for VulnSeeker UI.
 """
 
 from typing import Any, Callable, Dict, List, Optional, Tuple

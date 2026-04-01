@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Centralized logging configuration for Vulnhalla.
+Centralized logging configuration for VulnSeeker.
 
 Provides consistent logging setup across all modules with support for:
 - Console output (INFO level by default)
@@ -254,7 +254,7 @@ def get_logger(name: str) -> logging.Logger:
 
 
 # Auto-setup on import
-_AUTO_SETUP = os.getenv("VULNHALLA_AUTO_SETUP_LOGGING", "true").lower() == "true"
+_AUTO_SETUP = os.getenv("VULNSEEKER_AUTO_SETUP_LOGGING", "true").lower() == "true"
 if _AUTO_SETUP:
     setup_logging()
 

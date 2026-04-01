@@ -6,11 +6,11 @@
   <img src="images/h6yseb2b.png" alt="VulnSeeker" width="400">
 </div>
 
-For a detailed overview of the research and motivation behind Vulnhalla, see the official CyberArk Threat Research blog post:
+For a detailed overview of the research and motivation behind VulnSeeker, see the official CyberArk Threat Research blog post:
 
-**[Vulnhalla: Picking the True Vulnerabilities from the CodeQL Haystack](https://www.cyberark.com/resources/threat-research-blog/vulnhalla-picking-the-true-vulnerabilities-from-the-codeql-haystack)**
+**[Picking the True Vulnerabilities from the CodeQL Haystack](https://www.cyberark.com/resources/threat-research-blog/vulnhalla-picking-the-true-vulnerabilities-from-the-codeql-haystack)**
 
-### Vulnhalla automates the complete security analysis pipeline:
+### VulnSeeker automates the complete security analysis pipeline:
 
 1. **Fetching repositories** of a given programming language from GitHub
 2. **Downloading** their corresponding [CodeQL](https://github.com/github/codeql) databases (if available)
@@ -19,11 +19,11 @@ For a detailed overview of the research and motivation behind Vulnhalla, see the
 
 ### Supported Analysis Modes
 
-| Mode                   | Database Source                              | Build Required | Command Example                                   |
-| ---------------------- | -------------------------------------------- | -------------- | ------------------------------------------------- |
-| **GitHub DB**    | Pre-built CodeQL database on GitHub          | No             | `poetry run vulnhalla redis/redis`              |
-| **Local DB**     | Pre-built CodeQL database on your disk       | No             | `poetry run vulnhalla --local /path/to/db`      |
-| **Local Source** | Your own source code (auto-builds CodeQL DB) | Yes            | `poetry run vulnhalla --local-src /path/to/src` |
+| Mode                   | Database Source                              | Build Required | Command Example                                    |
+| ---------------------- | -------------------------------------------- | -------------- | -------------------------------------------------- |
+| **GitHub DB**    | Pre-built CodeQL database on GitHub          | No             | `poetry run vulnseeker redis/redis`              |
+| **Local DB**     | Pre-built CodeQL database on your disk       | No             | `poetry run vulnseeker --local /path/to/db`      |
+| **Local Source** | Your own source code (auto-builds CodeQL DB) | Yes            | `poetry run vulnseeker --local-src /path/to/src` |
 
 ---
 
@@ -199,7 +199,7 @@ LLM_TOP_P=0.2
 
 # Optional: Logging Configuration
 LOG_LEVEL=INFO                  # DEBUG, INFO, WARNING, ERROR
-LOG_FILE=                       # Optional: path to log file (e.g., logs/vulnhalla.log)
+LOG_FILE=                       # Optional: path to log file (e.g., logs/vulnseeker.log)
 LOG_FORMAT=default              # default or json
 # LOG_VERBOSE_CONSOLE=false     # If true, WARNING/ERROR use full format (timestamp - logger - level - message)
 ```
@@ -244,7 +244,7 @@ poetry --version
 # Pick one supported version you have: 3.10 / 3.11 / 3.12 / 3.13
 poetry env use 3.12  # Force Poetry to use a supported Python version if you have multiple versions installed
 poetry install
-poetry run vulnhalla-setup
+poetry run vulnseeker-setup
 ```
 
 **macOS / Linux:**
@@ -253,20 +253,20 @@ poetry run vulnhalla-setup
 # Pick one supported version you have: 3.10 / 3.11 / 3.12 / 3.13
 poetry env use 3.12  # Force Poetry to use a supported Python version if you have multiple versions installed
 poetry install
-poetry run vulnhalla-setup
+poetry run vulnseeker-setup
 ```
 
 ### Step 5: Run the Pipeline
 
 ```bash
 # Analyze a specific repository, for example:
-poetry run vulnhalla redis/redis
+poetry run vulnseeker redis/redis
 
 # Re-download even if database already exists
-poetry run vulnhalla redis/redis --force
+poetry run vulnseeker redis/redis --force
 
 # Show help
-poetry run vulnhalla --help
+poetry run vulnseeker --help
 ```
 
 This will automatically:
@@ -283,31 +283,31 @@ If you already have a CodeQL database on disk (e.g., created manually or from a 
 **Windows (PowerShell):**
 
 ```powershell
-poetry run vulnhalla --local C:\path\to\my-codeql-db
+poetry run vulnseeker --local C:\path\to\my-codeql-db
 ```
 
 **macOS / Linux:**
 
 ```bash
-poetry run vulnhalla --local /path/to/my-codeql-db
+poetry run vulnseeker --local /path/to/my-codeql-db
 ```
 
 > **Note:** The `--local` flag expects a CodeQL **database** directory, not a source code folder. You can verify by checking that the folder contains a `codeql-database.yml` file.
 
 #### Building a CodeQL Database from Local Source
 
-If you have a local repository's source code and want to analyze it without relying on GitHub's pre-built CodeQL databases, use the `--local-src` flag. Vulnhalla will automatically build a CodeQL database from your source code and then run the full analysis pipeline.
+If you have a local repository's source code and want to analyze it without relying on GitHub's pre-built CodeQL databases, use the `--local-src` flag. VulnSeeker will automatically build a CodeQL database from your source code and then run the full analysis pipeline.
 
 **Windows (PowerShell):**
 
 ```powershell
-poetry run vulnhalla --local-src C:\path\to\your-repo
+poetry run vulnseeker --local-src C:\path\to\your-repo
 ```
 
 **macOS / Linux:**
 
 ```bash
-poetry run vulnhalla --local-src /path/to/your-repo
+poetry run vulnseeker --local-src /path/to/your-repo
 ```
 
 The built database will be saved to `output/databases/c/<repo_name>/`, and the full analysis pipeline (queries + LLM classification) will run automatically.
@@ -315,7 +315,7 @@ The built database will be saved to `output/databases/c/<repo_name>/`, and the f
 **Re-build even if database already exists:**
 
 ```bash
-poetry run vulnhalla --local-src /path/to/your-repo --force
+poetry run vulnseeker --local-src /path/to/your-repo --force
 ```
 
 > **Note:** `--local-src` expects a **source code directory**, not a CodeQL database folder. CodeQL will automatically detect the language from the source files.
@@ -324,28 +324,28 @@ poetry run vulnhalla --local-src /path/to/your-repo --force
 
 ```bash
 # Open UI to view existing results (without running analysis)
-poetry run vulnhalla-ui
+poetry run vulnseeker-ui
 
 # Validate configuration: CodeQL, LLM, Logging (without running analysis)
-poetry run vulnhalla-validate
+poetry run vulnseeker-validate
 
 # List analyzed repositories and their issue counts
-poetry run vulnhalla-list
+poetry run vulnseeker-list
 
 # Run example pipeline (analyzes videolan/vlc and redis/redis)
-poetry run vulnhalla-example
+poetry run vulnseeker-example
 ```
 
 ---
 
 ## 🖥️ User Interface (UI)
 
-Vulnhalla includes a full-featured User Interface for browsing and exploring analysis results.
+VulnSeeker includes a full-featured User Interface for browsing and exploring analysis results.
 
 ### Running the UI
 
 ```bash
-poetry run vulnhalla-ui
+poetry run vulnseeker-ui
 ```
 
 ### UI Layout
@@ -502,10 +502,10 @@ AWS_PROFILE=your-profile
 > **⚠️ Prerequisites:**
 >
 > - AWS credentials must be configured (SSO, IAM profile, or access keys) with **permissions to invoke Bedrock models**
-> - **For SSO users:** Run `aws sso login --profile your-profile` before using Vulnhalla
+> - **For SSO users:** Run `aws sso login --profile your-profile` before using VulnSeeker
 >
 > **🔧 Important - Model Selection:**
-> When selecting a Bedrock model, make sure it supports **tool calling/function calling** (not all Bedrock models do). Tool calling is a key part of Vulnhalla's analysis flow, so choosing a compatible model makes a big difference in functionality and results. Compatible models include: **Claude 3.x**, **Mistral**, or **Cohere Command R**.
+> When selecting a Bedrock model, make sure it supports **tool calling/function calling** (not all Bedrock models do). Tool calling is a key part of VulnSeeker's analysis flow, so choosing a compatible model makes a big difference in functionality and results. Compatible models include: **Claude 3.x**, **Mistral**, or **Cohere Command R**.
 
 #### Optional Variables
 
@@ -519,7 +519,7 @@ AWS_PROFILE=your-profile
 | `LLM_TIMEOUT`           | `300`                    | Timeout in seconds for each LLM API request. Defaults to 5 minutes. Increase if network latency is high (e.g., accessing OpenRouter from regions with high latency).                       |
 | `LLM_MAX_RETRIES`       | `3`                      | Maximum number of retries for failed LLM API requests (e.g., timeouts). Uses exponential backoff between retries. Set to `0` to disable retries.                                         |
 | `LOG_LEVEL`             | `INFO`                   | Logging level:`DEBUG`, `INFO`, `WARNING`, or `ERROR`. Controls verbosity of console output                                                                                         |
-| `LOG_FILE`              | -                          | Optional path to log file (e.g.,`logs/vulnhalla.log`). If set, logs are written to both console and file. File logging uses DEBUG level for detailed output                              |
+| `LOG_FILE`              | -                          | Optional path to log file (e.g.,`logs/vulnseeker.log`). If set, logs are written to both console and file. File logging uses DEBUG level for detailed output                             |
 | `LOG_FORMAT`            | `default`                | Log format style:`default` (human-readable), or `json` (structured JSON format)                                                                                                        |
 | `LOG_VERBOSE_CONSOLE`   | `false`                  | If `true`, WARNING/ERROR/CRITICAL use full format (timestamp - logger - level - message). Default: WARNING/ERROR use simple format (LEVEL - message), INFO always minimal (message only) |
 | `THIRD_PARTY_LOG_LEVEL` | `ERROR`                  | Log level for third-party libraries (LiteLLM, urllib3, requests). Options:`DEBUG`, `INFO`, `WARNING`, `ERROR`. Default suppresses most third-party noise                           |
@@ -530,7 +530,7 @@ AWS_PROFILE=your-profile
 
 ### Configuration Validation
 
-Vulnhalla validates your configuration at startup. If required variables are missing or invalid, you'll see clear error messages indicating what needs to be fixed.
+VulnSeeker validates your configuration at startup. If required variables are missing or invalid, you'll see clear error messages indicating what needs to be fixed.
 
 **Common validation errors:**
 

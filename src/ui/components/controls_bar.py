@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Controls bar component for Vulnhalla UI.
+Controls bar component for VulnSeeker UI.
 """
 
 from textual.containers import Container, Horizontal, Vertical

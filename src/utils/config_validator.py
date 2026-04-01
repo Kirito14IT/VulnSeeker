@@ -369,9 +369,9 @@ def validate_and_exit_on_error() -> None:
     Raises:
         LLMConfigError: If LLM configuration is invalid
         CodeQLConfigError: If CodeQL configuration is invalid
-        VulnhallaError: If Logging configuration is invalid
+        VulnSeekerError: If Logging configuration is invalid
     """
-    from src.utils.exceptions import LLMConfigError, CodeQLConfigError, VulnhallaError
+    from src.utils.exceptions import LLMConfigError, CodeQLConfigError, VulnSeekerError
     
     is_valid, errors = validate_all_config()
     
@@ -388,7 +388,7 @@ def validate_and_exit_on_error() -> None:
         elif has_codeql_error:
             raise CodeQLConfigError(errors_block)
         elif has_logging_error:
-            raise VulnhallaError(errors_block)
+            raise VulnSeekerError(errors_block)
         else:
-            raise VulnhallaError(errors_block)
+            raise VulnSeekerError(errors_block)
 

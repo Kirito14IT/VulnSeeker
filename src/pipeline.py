@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pipeline orchestration for Vulnhalla.
+Pipeline orchestration for VulnSeeker.
 This module coordinates the complete analysis pipeline:
 1. Fetch CodeQL databases
 2. Run CodeQL queries
@@ -29,9 +29,9 @@ from src.utils.logger import setup_logging, get_logger
 from src.utils.exceptions import (
     CodeQLError, CodeQLConfigError, CodeQLExecutionError,
     LLMError, LLMConfigError, LLMApiError,
-    VulnhallaError
+    VulnSeekerError
 )
-from src.vulnhalla import IssueAnalyzer
+from src.vulnseeker import IssueAnalyzer
 from src.ui.ui_app import main as ui_main
 
 # Initialize logging
@@ -192,7 +192,7 @@ def step3_classify_results_with_llm(dbs_dir: str, lang: str) -> None:
         LLMApiError: If LLM API call fails (e.g., network issues, rate limits).
         LLMError: If other LLM-related errors occur.
         CodeQLError: If reading CodeQL database files fails (YAML, ZIP, CSV).
-        VulnhallaError: If saving analysis results to disk fails.
+        VulnSeekerError: If saving analysis results to disk fails.
     """
     logger.info("\nStep 3: Classifying Results with LLM")
     logger.info("-" * 60)
@@ -221,7 +221,7 @@ def step3_classify_results_with_llm(dbs_dir: str, lang: str) -> None:
         logger.error("   This step reads CodeQL database files (YAML, ZIP, CSV) to prepare data for LLM analysis.")
         logger.error("   Please check your CodeQL databases and files are accessible.")
         sys.exit(1)
-    except VulnhallaError as e:
+    except VulnSeekerError as e:
         logger.error("[-] Step 3: File system error while saving results: %s", e)
         _log_exception_cause(e)
         logger.error("   This step writes analysis results to disk and creates output directories.")
@@ -248,12 +248,12 @@ def main_analyze() -> None:
     CLI entry point for the complete analysis pipeline.
     
     Expected usage: 
-        vulnhalla <org/repo> [--force]           # Fetch from GitHub
-        vulnhalla --local <path/to/db>           # Use local CodeQL database
+        vulnseeker <org/repo> [--force]           # Fetch from GitHub
+        vulnseeker --local <path/to/db>           # Use local CodeQL database
     """
     parser = argparse.ArgumentParser(
-        prog="vulnhalla",
-        description="Vulnhalla - Automated CodeQL Analysis with LLM Classification"
+        prog="vulnseeker",
+        description="VulnSeeker - Automated CodeQL Analysis with LLM Classification"
     )
     parser.add_argument("repo", nargs="?", help="GitHub repository in 'org/repo' format")
     parser.add_argument("--force", "-f", action="store_true", help="Re-download even if database exists")
@@ -294,7 +294,7 @@ def analyze_pipeline(
     local_src_path: Optional[str] = None
 ) -> None:
     """
-    Run the complete Vulnhalla pipeline: fetch, analyze, classify, and optionally open UI.
+    Run the complete VulnSeeker pipeline: fetch, analyze, classify, and optionally open UI.
 
     Args:
         repo: GitHub repository name (e.g., "redis/redis"). Required if local_db_path and
@@ -311,13 +311,13 @@ def analyze_pipeline(
         This function catches and handles all exceptions internally, logging errors
         and exiting with code 1 on failure. It does not raise exceptions.
     """
-    logger.info("Starting Vulnhalla Analysis Pipeline")
+    logger.info("Starting VulnSeeker Analysis Pipeline")
     logger.info("=" * 60)
 
     # Validate configuration before starting
     try:
         validate_and_exit_on_error()
-    except (CodeQLConfigError, LLMConfigError, VulnhallaError) as e:
+    except (CodeQLConfigError, LLMConfigError, VulnSeekerError) as e:
         message = f"""
 [-] Configuration Validation Failed
 ============================================================
@@ -359,9 +359,9 @@ def main_ui() -> None:
     """
     CLI entry point to open the UI without running analysis.
     
-    Expected usage: vulnhalla-ui
+    Expected usage: vulnseeker-ui
     """
-    logger.info("Opening Vulnhalla UI...")
+    logger.info("Opening VulnSeeker UI...")
     ui_main()
 
 
@@ -369,7 +369,7 @@ def main_validate() -> None:
     """
     CLI entry point to validate configuration.
     
-    Expected usage: vulnhalla-validate
+    Expected usage: vulnseeker-validate
     """
     from src.utils.config_validator import validate_all_config
     
@@ -387,13 +387,13 @@ def main_list() -> None:
     """
     CLI entry point to list analyzed repositories.
     
-    Expected usage: vulnhalla-list
+    Expected usage: vulnseeker-list
     """
     from src.ui.results_loader import ResultsLoader
     
     results_dir = Path("output/results")
     if not results_dir.exists():
-        logger.info("No results found. Run 'vulnhalla <org/repo>' first.")
+        logger.info("No results found. Run 'vulnseeker <org/repo>' first.")
         return
     
     loader = ResultsLoader()
@@ -428,7 +428,7 @@ def main_example() -> None:
     """
     CLI entry point to run the example pipeline.
     
-    Expected usage: vulnhalla-example
+    Expected usage: vulnseeker-example
     """
     from examples.example import main as example_main
     example_main()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Issues list panel component for Vulnhalla UI.
+Issues list panel component for VulnSeeker UI.
 """
 
 from textual.containers import Container, Vertical

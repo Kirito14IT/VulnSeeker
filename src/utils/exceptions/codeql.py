@@ -1,9 +1,9 @@
 """CodeQL-related exceptions."""
 
-from src.utils.exceptions.base import VulnhallaError
+from src.utils.exceptions.base import VulnSeekerError
 
 
-class CodeQLError(VulnhallaError):
+class CodeQLError(VulnSeekerError):
     """Base class for all CodeQL-related errors."""
     pass
 

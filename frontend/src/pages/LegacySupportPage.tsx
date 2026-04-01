@@ -72,7 +72,7 @@ export default function LegacySupportPage() {
             Legacy Helper Commands
           </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Web equivalents of `vulnhalla-list` and `vulnhalla-validate`.
+            Web equivalents of `vulnseeker-list` and `vulnseeker-validate`.
           </Paragraph>
         </Space>
       </Card>

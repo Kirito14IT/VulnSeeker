@@ -1,9 +1,9 @@
 """LLM-related exceptions."""
 
-from src.utils.exceptions.base import VulnhallaError
+from src.utils.exceptions.base import VulnSeekerError
 
 
-class LLMError(VulnhallaError):
+class LLMError(VulnSeekerError):
     """Base class for all LLM-related errors."""
     pass
 
