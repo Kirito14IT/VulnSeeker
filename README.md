@@ -2,7 +2,7 @@
 
 # Automated CodeQL Analysis with LLM Classification
 
-<div align="center">
+[<div align="center">
   <img src="images/vulnseeker.png" alt="VulnSeeker" width="400">
 </div>
 ## Star History
@@ -13,7 +13,7 @@
    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Kirito14IT/VulnSeeker&type=date&legend=top-left" />
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Kirito14IT/VulnSeeker&type=date&legend=top-left" />
  </picture>
-</a>
+</a>](https://www.star-history.com/?repos=Kirito14IT%2FVulnSeeker&type=date&legend=top-left)
 
 ### VulnSeeker automates the complete security analysis pipeline:
 
