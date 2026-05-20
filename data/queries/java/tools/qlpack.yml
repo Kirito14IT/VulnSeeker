@@ -1,0 +1,4 @@
+name: vulnseeker-java-tools
+version: 0.0.0
+dependencies:
+  codeql/java-all: "*"
