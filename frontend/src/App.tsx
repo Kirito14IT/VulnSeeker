@@ -15,6 +15,7 @@ import TaskResultPage from './pages/TaskResultPage';
 import GlobalResultsPage from './pages/GlobalResultsPage';
 import LegacySupportPage from './pages/LegacySupportPage';
 import SecureCodingEvalPage from './pages/SecureCodingEvalPage';
+import AdminPage from './pages/AdminPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuthStore();
@@ -23,8 +24,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuthStore();
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  const { isAuthenticated, user } = useAuthStore();
+  if (isAuthenticated) return <Navigate to={user?.role === 'admin' ? '/admin' : '/'} replace />;
   return <>{children}</>;
 };
 
@@ -83,6 +84,10 @@ function App() {
             <Route
               path="/research/secure-coding-eval"
               element={<ProtectedRoute><SecureCodingEvalPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/admin"
+              element={<ProtectedRoute><AdminPage /></ProtectedRoute>}
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

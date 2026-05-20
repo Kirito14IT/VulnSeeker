@@ -37,7 +37,7 @@ class AuthService:
         await self.db.commit()
         await self.db.refresh(user)
 
-        token = create_access_token(data={"sub": str(user.id), "username": user.username})
+        token = create_access_token(data={"sub": str(user.id), "username": user.username, "role": user.role})
         return user, token
 
     async def authenticate(self, username: str, password: str) -> Optional[User]:

@@ -61,7 +61,7 @@ async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
         )
-    token = create_access_token(data={"sub": str(user.id), "username": user.username})
+    token = create_access_token(data={"sub": str(user.id), "username": user.username, "role": user.role})
     return TokenResponse(
         access_token=token,
         user=UserResponse.model_validate(user),
