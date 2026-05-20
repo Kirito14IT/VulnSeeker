@@ -42,9 +42,6 @@ ENV/
 .env.local
 .env.*.local
 !.env.example
-backend/.env
-backend/.env.local
-backend/.env.*.local
 
 # ── Runtime data directories ──────────────────────────────────────────────────
 # These directories are populated at runtime and should not be committed

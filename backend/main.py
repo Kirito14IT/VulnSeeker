@@ -68,6 +68,16 @@ async def leave_task(sid, data):
 async def lifespan(app: FastAPI):
     # Startup: create database tables
     await init_db()
+    from core.database import AsyncSessionLocal
+    from services.analysis_service import AnalysisService
+
+    async with AsyncSessionLocal() as db:
+        service = AnalysisService(db)
+        removed_task_ids, cleanup_errors = await service.cleanup_orphan_task_artifacts()
+        if removed_task_ids:
+            print(f"Removed orphan web task artifacts: {removed_task_ids}")
+        for cleanup_error in cleanup_errors:
+            print(f"Failed to remove orphan web task artifact: {cleanup_error}")
     yield
     # Shutdown: cleanup if needed
 

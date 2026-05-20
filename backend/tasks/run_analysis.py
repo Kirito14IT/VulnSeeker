@@ -13,11 +13,11 @@ import logging
 import os
 import subprocess
 import traceback
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from core.config import get_settings
+from core.timezone import local_now
 from models.models import TaskStatus
 from services.task_workspace import (
     get_task_logs_path,
@@ -58,13 +58,15 @@ async def update_task_status(
 
 
 async def _append_log(task_id: int, msg_type: str, content: str) -> None:
+    log_path = get_task_logs_path(task_id)
+    if not log_path.parent.exists():
+        return
+
     payload = {
         "type": msg_type,
         "content": content,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": local_now().isoformat(),
     }
-    log_path = get_task_logs_path(task_id)
-    log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
     await _emit(task_id, payload)

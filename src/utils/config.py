@@ -11,11 +11,11 @@ from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
 
-# Load .env file if it exists, otherwise try .env.example
-if Path(".env").exists():
-    load_dotenv(".env")
-elif Path(".env.example").exists():
-    load_dotenv(".env.example")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ROOT_ENV_FILE = PROJECT_ROOT / ".env"
+
+if ROOT_ENV_FILE.exists():
+    load_dotenv(ROOT_ENV_FILE)
 
 
 def get_codeql_path() -> str:

@@ -30,6 +30,48 @@ DEFAULT_CODEQL = get_codeql_path()
 DEFAULT_LANG = "c"  # Mapped to data/queries/cpp for some tasks
 
 
+def _format_process_output(stdout: str | None, stderr: str | None) -> str:
+    """
+    Return a concise process output block for error messages.
+    """
+    output_parts = []
+    for stream_name, content in (("stdout", stdout), ("stderr", stderr)):
+        text = (content or "").strip()
+        if not text:
+            continue
+        if len(text) > 8000:
+            text = "... output truncated ...\n" + text[-8000:]
+        output_parts.append(f"CodeQL {stream_name}:\n{text}")
+    return "\n".join(output_parts)
+
+
+def _run_codeql_command(command: list[str], failure_message: str) -> None:
+    """
+    Run a CodeQL command and preserve its stdout/stderr in failure details.
+    """
+    try:
+        subprocess.run(
+            command,
+            check=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except FileNotFoundError as e:
+        raise CodeQLConfigError(
+            f"CodeQL executable not found: {command[0]}. "
+            "Please check your CODEQL_PATH configuration."
+        ) from e
+    except subprocess.CalledProcessError as e:
+        output = _format_process_output(e.stdout, e.stderr)
+        detail = f"\n{output}" if output else ""
+        raise CodeQLExecutionError(
+            f"{failure_message}: CodeQL returned exit code {e.returncode}{detail}"
+        ) from e
+
+
 def append_csv(source_csv: str, dest_csv: str) -> None:
     """
     Appends the content of source_csv to dest_csv and removes source_csv.
@@ -74,30 +116,17 @@ def pre_compile_ql(file_name: str, threads: int, codeql_bin: str) -> None:
     """
     qlx_path = Path(str(file_name) + "x")
     if not qlx_path.exists():
-        try:
-            subprocess.run(
-                [
-                    codeql_bin,
-                    "query",
-                    "compile",
-                    file_name,
-                    f'--threads={threads}',
-                    "--precompile"
-                ],
-                check=True,
-                text=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-        except FileNotFoundError as e:
-            raise CodeQLConfigError(
-                f"CodeQL executable not found: {codeql_bin}. "
-                "Please check your CODEQL_PATH configuration."
-            ) from e
-        except subprocess.CalledProcessError as e:
-            raise CodeQLExecutionError(
-                f"Failed to compile query {file_name}: CodeQL returned exit code {e.returncode}"
-            ) from e
+        _run_codeql_command(
+            [
+                codeql_bin,
+                "query",
+                "compile",
+                file_name,
+                f'--threads={threads}',
+                "--precompile"
+            ],
+            f"Failed to compile query {file_name}",
+        )
 
 
 def compile_all_queries(queries_folder: str, threads: int, codeql_bin: str) -> None:
@@ -143,47 +172,24 @@ def run_one_query(
         CodeQLExecutionError: If query execution or BQRS decoding fails.
     """
     # Run the query
-    try:
-        subprocess.run(
-            [
-                codeql_bin, "query", "run", query_file,
-                f'--database={curr_db}',
-                f'--output={output_bqrs}',
-                f'--threads={threads}'
-            ],
-            check=True,
-            text=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-    except FileNotFoundError as e:
-        raise CodeQLConfigError(
-            f"CodeQL executable not found: {codeql_bin}. "
-            "Please check your CODEQL_PATH configuration."
-        ) from e
-    except subprocess.CalledProcessError as e:
-        raise CodeQLExecutionError(
-            f"Failed to run query {query_file} on database {curr_db}: "
-            f"CodeQL returned exit code {e.returncode}"
-        ) from e
+    _run_codeql_command(
+        [
+            codeql_bin, "query", "run", query_file,
+            f'--database={curr_db}',
+            f'--output={output_bqrs}',
+            f'--threads={threads}'
+        ],
+        f"Failed to run query {query_file} on database {curr_db}",
+    )
 
     # Decode BQRS to CSV
-    try:
-        subprocess.run(
-            [
-                codeql_bin, "bqrs", "decode", output_bqrs,
-                '--format=csv', f'--output={output_csv}'
-            ],
-            check=True,
-            text=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-    except subprocess.CalledProcessError as e:
-        raise CodeQLExecutionError(
-            f"Failed to decode BQRS file {output_bqrs} to CSV: "
-            f"CodeQL returned exit code {e.returncode}"
-        ) from e
+    _run_codeql_command(
+        [
+            codeql_bin, "bqrs", "decode", output_bqrs,
+            '--format=csv', f'--output={output_csv}'
+        ],
+        f"Failed to decode BQRS file {output_bqrs} to CSV",
+    )
 
 
 def run_queries_on_db(
@@ -241,35 +247,21 @@ def run_queries_on_db(
     if queries_folder_path.is_dir():
         output_issues = str(Path(curr_db) / f"issues_{current_lang}.csv")
         final_issues = str(Path(curr_db) / "issues.csv")
-        try:
-            subprocess.run(
-                [
-                    codeql_bin,
-                    "database",
-                    "analyze",
-                    curr_db,
-                    queries_folder,
-                    f'--timeout={timeout}',
-                    '--format=csv',
-                    f'--output={output_issues}',
-                    f'--threads={threads}'
-                ],
-                check=True,
-                text=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-            append_csv(output_issues, final_issues)
-        except FileNotFoundError as e:
-            raise CodeQLConfigError(
-                f"CodeQL executable not found: {codeql_bin}. "
-                "Please check your CODEQL_PATH configuration."
-            ) from e
-        except subprocess.CalledProcessError as e:
-            raise CodeQLExecutionError(
-                f"Failed to analyze database {curr_db} with queries from {queries_folder}: "
-                f"CodeQL returned exit code {e.returncode}"
-            ) from e
+        _run_codeql_command(
+            [
+                codeql_bin,
+                "database",
+                "analyze",
+                curr_db,
+                queries_folder,
+                f'--timeout={timeout}',
+                '--format=csv',
+                f'--output={output_issues}',
+                f'--threads={threads}'
+            ],
+            f"Failed to analyze database {curr_db} with queries from {queries_folder}",
+        )
+        append_csv(output_issues, final_issues)
     else:
         logger.warning("Queries folder '%s' not found. Skipping database analysis.", queries_folder)
 

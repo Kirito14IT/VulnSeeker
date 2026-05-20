@@ -45,8 +45,9 @@ export default function DashboardPage() {
       await tasksApi.delete(id);
       setTasks((previous) => previous.filter((task) => task.id !== id));
       message.success('Task deleted');
-    } catch {
-      message.error('Failed to delete task');
+    } catch (error: unknown) {
+      const response = error as { response?: { data?: { detail?: string } } };
+      message.error(response.response?.data?.detail ?? 'Failed to delete task');
     }
   };
 

@@ -10,9 +10,10 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import inspect, text
+from sqlalchemy import event, inspect, text
 
 from core.config import get_settings
+from core.timezone import mysql_session_time_zone
 
 
 class Base(DeclarativeBase):
@@ -28,6 +29,15 @@ engine = create_async_engine(
     pool_size=10,
     max_overflow=20,
 )
+
+
+@event.listens_for(engine.sync_engine, "connect")
+def _set_mysql_session_time_zone(dbapi_connection, _connection_record) -> None:
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute(f"SET time_zone = '{mysql_session_time_zone()}'")
+    finally:
+        cursor.close()
 
 AsyncSessionLocal = async_sessionmaker(
     engine,

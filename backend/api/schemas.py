@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, EmailStr, Field
 
+from core.timezone import local_now
 from models.models import TaskSource
 
 
@@ -114,7 +115,7 @@ class IssueDecisionUpdate(BaseModel):
 class WSMessage(BaseModel):
     type: str  # "log" | "status" | "error" | "done"
     content: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.utcnow())
+    timestamp: datetime = Field(default_factory=local_now)
 
 
 class TaskLogResponse(BaseModel):

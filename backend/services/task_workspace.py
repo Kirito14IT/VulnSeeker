@@ -4,13 +4,20 @@ Helpers for managing isolated per-task workspaces for web analysis runs.
 
 from __future__ import annotations
 
+import os
+import re
 import shutil
+import stat
 from pathlib import Path
 
 from core.config import get_settings
 
 
 settings = get_settings()
+
+
+class TaskArtifactCleanupError(RuntimeError):
+    """Raised when a task's on-disk artifacts cannot be removed."""
 
 
 def get_task_root(task_id: int) -> Path:
@@ -33,6 +40,43 @@ def get_task_logs_path(task_id: int) -> Path:
     return get_task_root(task_id) / "task.log"
 
 
+def _ensure_web_task_child(path: Path) -> None:
+    root = settings.WEB_TASKS_ROOT.resolve(strict=False)
+    parent = path.parent.resolve(strict=False)
+    if parent != root:
+        raise TaskArtifactCleanupError(f"Refusing to delete outside web task root: {path}")
+
+
+def _make_writable_and_retry(func, path: str, _exc_info) -> None:
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
+def _remove_task_root(task_root: Path) -> None:
+    _ensure_web_task_child(task_root)
+
+    if not task_root.exists() and not task_root.is_symlink():
+        return
+
+    try:
+        if task_root.is_symlink() or task_root.is_file():
+            task_root.unlink()
+            return
+
+        resolved_root = settings.WEB_TASKS_ROOT.resolve(strict=False)
+        resolved_target = task_root.resolve(strict=False)
+        if not resolved_target.is_relative_to(resolved_root):
+            raise TaskArtifactCleanupError(
+                f"Refusing to recursively delete outside web task root: {resolved_target}"
+            )
+
+        shutil.rmtree(task_root, onerror=_make_writable_and_retry)
+    except TaskArtifactCleanupError:
+        raise
+    except OSError as exc:
+        raise TaskArtifactCleanupError(f"Failed to delete task artifacts at {task_root}: {exc}") from exc
+
+
 def clear_task_artifacts(task_id: int) -> None:
     """
     Remove stale on-disk artifacts for a web task id.
@@ -42,9 +86,32 @@ def clear_task_artifacts(task_id: int) -> None:
     Clearing the task root when a fresh DB task is created prevents those old
     logs/results from appearing before the new task has actually run.
     """
-    task_root = get_task_root(task_id)
-    if task_root.exists():
-        shutil.rmtree(task_root, ignore_errors=True)
+    _remove_task_root(get_task_root(task_id))
+
+
+def clear_orphan_task_artifacts(existing_task_ids: set[int]) -> tuple[list[int], list[str]]:
+    """
+    Delete output/web_tasks/task_<id> folders that no longer have DB records.
+    """
+    root = settings.WEB_TASKS_ROOT
+    if not root.exists():
+        return [], []
+
+    removed: list[int] = []
+    errors: list[str] = []
+    for child in root.iterdir():
+        match = re.fullmatch(r"task_(\d+)", child.name)
+        if not match:
+            continue
+        task_id = int(match.group(1))
+        if task_id in existing_task_ids:
+            continue
+        try:
+            _remove_task_root(child)
+            removed.append(task_id)
+        except TaskArtifactCleanupError as exc:
+            errors.append(str(exc))
+    return removed, errors
 
 
 def _safe_link_or_copy(src: Path, dst: Path, *, directory: bool = False) -> None:
@@ -86,14 +153,5 @@ def prepare_task_workspace(task_id: int) -> Path:
     shared_zip_root = settings.VULNSEEKER_ROOT / "output" / "zip_dbs"
     shared_zip_root.mkdir(parents=True, exist_ok=True)
     _safe_link_or_copy(shared_zip_root, output_dir / "zip_dbs", directory=True)
-
-    if settings.ROOT_ENV_FILE.exists():
-        env_source = settings.ROOT_ENV_FILE
-    elif settings.BACKEND_ENV_FILE.exists():
-        env_source = settings.BACKEND_ENV_FILE
-    else:
-        env_source = settings.ROOT_ENV_EXAMPLE_FILE
-    if env_source.exists():
-        _safe_link_or_copy(env_source, workspace / ".env", directory=False)
 
     return workspace

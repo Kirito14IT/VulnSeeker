@@ -132,7 +132,7 @@ def setup_logging(
                         str: A JSON representation of the log record.
                     """
                     log_entry = {
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now().astimezone().isoformat(),
                         "level": record.levelname,
                         "logger": record.name,
                         "message": record.getMessage(),

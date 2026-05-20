@@ -19,6 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from core.database import Base
+from core.timezone import local_now_naive
 
 
 class TaskStatus(str, PyEnum):
@@ -42,10 +43,10 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False
+        DateTime, default=local_now_naive, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), nullable=True
+        DateTime, default=local_now_naive, server_default=func.now(), onupdate=local_now_naive, nullable=True
     )
 
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="user", cascade="all, delete-orphan")
@@ -69,10 +70,10 @@ class Task(Base):
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     result_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False
+        DateTime, default=local_now_naive, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), nullable=True
+        DateTime, default=local_now_naive, server_default=func.now(), onupdate=local_now_naive, nullable=True
     )
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
@@ -94,7 +95,7 @@ class IssueDecision(Base):
     issue_id: Mapped[str] = mapped_column(String(128), nullable=False)
     decision: Mapped[str] = mapped_column(String(32), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime, default=local_now_naive, server_default=func.now(), onupdate=local_now_naive, nullable=False
     )
 
     task: Mapped["Task"] = relationship("Task", back_populates="issue_decisions")

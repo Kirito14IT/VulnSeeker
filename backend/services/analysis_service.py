@@ -5,14 +5,14 @@ Analysis service: wraps the original VulnSeeker engine for use in the web backen
 import sys
 from pathlib import Path
 from typing import Optional, Any
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.timezone import local_now_naive
 from models.models import Task, TaskStatus, IssueDecision, TaskSource
 from core.config import get_settings
-from services.task_workspace import clear_task_artifacts
+from services.task_workspace import clear_orphan_task_artifacts, clear_task_artifacts
 
 
 # Ensure VulnSeeker src/ is on the Python path
@@ -53,9 +53,14 @@ class AnalysisService:
             status=TaskStatus.PENDING,
         )
         self.db.add(task)
-        await self.db.commit()
-        await self.db.refresh(task)
-        clear_task_artifacts(task.id)
+        try:
+            await self.db.flush()
+            clear_task_artifacts(task.id)
+            await self.db.commit()
+            await self.db.refresh(task)
+        except Exception:
+            await self.db.rollback()
+            raise
         return task
 
     async def get_task(self, task_id: int, user_id: int) -> Optional[Task]:
@@ -72,10 +77,15 @@ class AnalysisService:
         task = await self.get_task(task_id, user_id)
         if not task:
             return False
+        clear_task_artifacts(task_id)
         await self.db.delete(task)
         await self.db.commit()
-        clear_task_artifacts(task_id)
         return True
+
+    async def cleanup_orphan_task_artifacts(self) -> tuple[list[int], list[str]]:
+        result = await self.db.execute(select(Task.id))
+        existing_task_ids = set(result.scalars().all())
+        return clear_orphan_task_artifacts(existing_task_ids)
 
     async def update_task_status(
         self,
@@ -95,7 +105,7 @@ class AnalysisService:
         if result_path is not _UNSET:
             task.result_path = result_path
         if status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
-            task.completed_at = datetime.utcnow()
+            task.completed_at = local_now_naive()
         await self.db.commit()
 
     async def save_issue_decision(

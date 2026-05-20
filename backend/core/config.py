@@ -1,6 +1,6 @@
 """
 Central configuration for the FastAPI backend.
-Reads from environment variables (.env file).
+Reads from environment variables and the project-root .env file.
 """
 
 from pathlib import Path
@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        # Look for .env in the project root first, then fallback to current directory
+        # The project-root .env is the single configuration file for backend and worker code.
         env_file=(str(Path(__file__).resolve().parents[2] / ".env")),
         env_file_encoding="utf-8",
         extra="ignore",
@@ -69,14 +69,6 @@ class Settings(BaseSettings):
     @property
     def ROOT_ENV_FILE(self) -> Path:
         return self.VULNSEEKER_ROOT / ".env"
-
-    @property
-    def ROOT_ENV_EXAMPLE_FILE(self) -> Path:
-        return self.VULNSEEKER_ROOT / ".env.example"
-
-    @property
-    def BACKEND_ENV_FILE(self) -> Path:
-        return self.VULNSEEKER_ROOT / "backend" / ".env"
 
     @cached_property
     def ANALYSIS_PYTHON_EXECUTABLE(self) -> str:
