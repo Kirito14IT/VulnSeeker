@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, EmailStr, Field
 
+from core.timezone import local_now
 from models.models import TaskSource
 
 
@@ -26,6 +27,7 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: str
+    role: str = "user"
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -37,13 +39,29 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 
+class UserUpdate(BaseModel):
+    """Admin-only schema for updating an existing user."""
+    username: Optional[str] = Field(default=None, min_length=3, max_length=64)
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(default=None, min_length=6, max_length=128)
+    role: Optional[str] = Field(default=None, pattern=r"^(user|admin)$")
+
+
+class UserCreateByAdmin(BaseModel):
+    """Admin-only schema for creating a user."""
+    username: str = Field(..., min_length=3, max_length=64)
+    email: EmailStr
+    password: str = Field(..., min_length=6, max_length=128)
+    role: str = Field(default="user", pattern=r"^(user|admin)$")
+
+
 # ── Tasks ─────────────────────────────────────────────────────────────────────
 
 class TaskCreate(BaseModel):
     source_type: TaskSource = Field(default=TaskSource.GITHUB, description="Task source mode")
     repo_url: Optional[str] = Field(default=None, max_length=512, description="GitHub repo in org/repo format")
     source_path: Optional[str] = Field(default=None, max_length=1024, description="Server-local path for local_db/local_src")
-    language: str = Field(default="c", max_length=16, description="Programming language code")
+    language: str = Field(default="cpp", max_length=256, description="Programming language code")
     force: bool = Field(default=False, description="Force re-download or re-build when supported")
 
 
@@ -63,6 +81,22 @@ class TaskResponse(BaseModel):
     completed_at: Optional[datetime]
 
     model_config = {"from_attributes": True}
+
+
+class AdminTaskResponse(TaskResponse):
+    """Task response with username, used in admin views."""
+    username: str = ""
+
+
+class TaskUpdate(BaseModel):
+    """Admin-only schema for updating a task."""
+    repo_url: Optional[str] = Field(default=None, max_length=512)
+    source_type: Optional[TaskSource] = None
+    source_path: Optional[str] = Field(default=None, max_length=1024)
+    language: Optional[str] = Field(default=None, max_length=256)
+    status: Optional[str] = None
+    force: Optional[bool] = None
+    user_id: Optional[int] = None
 
 
 # ── Issues ─────────────────────────────────────────────────────────────────────
@@ -115,7 +149,7 @@ class IssueDecisionUpdate(BaseModel):
 class WSMessage(BaseModel):
     type: str  # "log" | "status" | "error" | "done"
     content: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.utcnow())
+    timestamp: datetime = Field(default_factory=local_now)
 
 
 class TaskLogResponse(BaseModel):

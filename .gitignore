@@ -42,9 +42,6 @@ ENV/
 .env.local
 .env.*.local
 !.env.example
-backend/.env
-backend/.env.local
-backend/.env.*.local
 
 # ── Runtime data directories ──────────────────────────────────────────────────
 # Analysis workspaces, CodeQL DBs, generated reports, and rendered previews are
@@ -132,7 +129,6 @@ prompt_template_viewer.html
 'C*Users*'/
 
 # ── Poetry ────────────────────────────────────────────────────────────────────
-poetry.lock
 
 # ── Misc ─────────────────────────────────────────────────────────────────────
 *.pot          # gettext translation cache

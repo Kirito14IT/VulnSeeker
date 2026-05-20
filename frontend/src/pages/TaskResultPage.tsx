@@ -36,6 +36,7 @@ export default function TaskResultPage() {
   const logContainerRef = useRef<HTMLDivElement>(null);
   const shouldStickLogsRef = useRef(true);
   const taskRef = useRef<Task | null>(null);
+  const activeTaskIdRef = useRef<number | null>(null);
 
   const [task, setTask] = useState<Task | null>(null);
   const [issues, setIssues] = useState<IssueSummary[]>([]);
@@ -49,16 +50,33 @@ export default function TaskResultPage() {
     taskRef.current = task;
   }, [task]);
 
+  useEffect(() => {
+    activeTaskIdRef.current = tid;
+    taskRef.current = null;
+    shouldStickLogsRef.current = true;
+    setTask(null);
+    setIssues([]);
+    setSelectedIssue(null);
+    setIssueDetail(null);
+    setLogs([]);
+    setLoading(false);
+    setDetailLoading(false);
+  }, [tid]);
+
   const loadTask = useCallback(async () => {
     const data = await tasksApi.get(tid);
-    setTask(data);
+    if (activeTaskIdRef.current === tid) {
+      setTask(data);
+    }
     return data;
   }, [tid]);
 
   const loadLogs = useCallback(async () => {
     try {
       const response = await tasksApi.logs(tid);
-      setLogs(response.lines);
+      if (activeTaskIdRef.current === tid) {
+        setLogs(response.lines);
+      }
     } catch {
       message.error('Failed to load persisted logs');
     }
@@ -72,11 +90,15 @@ export default function TaskResultPage() {
     setLoading(true);
     try {
       const data = await resultsApi.listIssues(tid);
-      setIssues(data);
+      if (activeTaskIdRef.current === tid) {
+        setIssues(data);
+      }
     } catch {
       message.error('Failed to load issues');
     } finally {
-      setLoading(false);
+      if (activeTaskIdRef.current === tid) {
+        setLoading(false);
+      }
     }
   }, [tid]);
 
@@ -85,11 +107,15 @@ export default function TaskResultPage() {
     setDetailLoading(true);
     try {
       const detail = await resultsApi.getIssue(tid, issue.id);
-      setIssueDetail(detail);
+      if (activeTaskIdRef.current === tid) {
+        setIssueDetail(detail);
+      }
     } catch {
       message.error('Failed to load issue detail');
     } finally {
-      setDetailLoading(false);
+      if (activeTaskIdRef.current === tid) {
+        setDetailLoading(false);
+      }
     }
   }, [tid]);
 
@@ -117,15 +143,22 @@ export default function TaskResultPage() {
     }
 
     const socket = io(import.meta.env.VITE_API_BASE || undefined, {
-      path: '/socket.io',
-      transports: ['websocket'],
-      reconnection: true,
-    });
+    path: '/socket.io',
+    transports: ['polling', 'websocket'], // 先polling再升级ws
+    reconnection: true,
+});
+
+socket.on('connect_error', (err) => {
+  console.error('socket connect_error:', err.message, err);
+});
 
     socket.on('connect', () => {
       socket.emit('join_task', { task_id: taskId });
     });
     socket.on(`task_${taskId}`, (msg: WsMessage) => {
+      if (activeTaskIdRef.current !== tid) {
+        return;
+      }
       setLogs((previous) => {
         const last = previous[previous.length - 1];
         if (last
@@ -140,7 +173,13 @@ export default function TaskResultPage() {
 
     void (async () => {
       const currentTask = await loadTask();
+      if (activeTaskIdRef.current !== tid) {
+        return;
+      }
       await loadLogs();
+      if (activeTaskIdRef.current !== tid) {
+        return;
+      }
       if (canLoadIssueResults(currentTask)) {
         await loadIssues(currentTask);
       }

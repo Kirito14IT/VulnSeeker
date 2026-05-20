@@ -4,6 +4,7 @@ Global legacy-results APIs that mirror the old CLI/TUI helpers.
 
 from __future__ import annotations
 
+import os
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.auth import get_current_user
@@ -16,22 +17,35 @@ from services.result_loader import (
     build_repo_stats,
     load_global_issues,
 )
-from src.ui.results_loader import ResultsLoader
+from src.utils.results_loader import ResultsLoader
 
 
 router = APIRouter(prefix="/api/legacy", tags=["legacy"])
 settings = get_settings()
 
 
+def _get_all_available_languages() -> str:
+    """Scan the results root directory to find all available languages."""
+    if not settings.RESULTS_ROOT.exists():
+        return "cpp"
+
+    langs = []
+    for p in settings.RESULTS_ROOT.iterdir():
+        if p.is_dir() and not p.name.startswith("."):
+            langs.append(p.name)
+
+    return ",".join(langs) if langs else "cpp"
+
+
 @router.get("/issues", response_model=list[IssueSummary])
 async def list_global_issues(current_user: User = Depends(get_current_user)):
-    issues = load_global_issues(settings.RESULTS_ROOT, "c")
+    issues = load_global_issues(settings.RESULTS_ROOT, _get_all_available_languages())
     return [_issue_to_summary(issue, issue.manual_decision) for issue in issues]
 
 
 @router.get("/issues/{issue_id}", response_model=IssueDetail)
 async def get_global_issue(issue_id: str, current_user: User = Depends(get_current_user)):
-    issues = load_global_issues(settings.RESULTS_ROOT, "c")
+    issues = load_global_issues(settings.RESULTS_ROOT, _get_all_available_languages())
     for issue in issues:
         if issue.id == issue_id:
             return _issue_to_detail(issue, issue.manual_decision)
@@ -44,7 +58,7 @@ async def update_global_issue_decision(
     body: IssueDecisionUpdate,
     current_user: User = Depends(get_current_user),
 ):
-    issues = load_global_issues(settings.RESULTS_ROOT, "c")
+    issues = load_global_issues(settings.RESULTS_ROOT, _get_all_available_languages())
     target = next((issue for issue in issues if issue.id == issue_id), None)
     if not target:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found")
@@ -63,4 +77,4 @@ async def update_global_issue_decision(
 
 @router.get("/stats", response_model=list[RepoStat])
 async def list_repo_stats(current_user: User = Depends(get_current_user)):
-    return build_repo_stats(load_global_issues(settings.RESULTS_ROOT, "c"))
+    return build_repo_stats(load_global_issues(settings.RESULTS_ROOT, _get_all_available_languages()))

@@ -1,11 +1,12 @@
-# VulnSeeker Web — 启动说明
+# VulnSeeker  —  Web 启动说明
 
 ## 前置要求
 
 - **Node.js** >= 18
 - **Python** >= 3.10, < 3.14
+- **Conda** 用于后端 Python 环境管理
 - **MySQL** 运行在 `localhost:3306`
-- **CodeQL CLI** 已安装并配置（参考 [VulnSeeker README](README.md)）
+- **CodeQL CLI** 已安装，并在下方 `.env` 中配置 `CODEQL_PATH`
 
 ---
 
@@ -21,41 +22,28 @@ CREATE DATABASE vulnseeker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ## 2. 配置环境变量
 
-在项目根目录创建 `.env` 文件：
+项目首次拉取后，根目录只有 `.env.example` 范例文件。复制它为 `.env`，再按本机环境填写真实值：
 
 ```bash
-# ── MySQL ─────────────────────────────────────────────
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USER=root
-MYSQL_PASSWORD=your_mysql_password
-MYSQL_DATABASE=vulnseeker
-
-# ── JWT（生产环境请替换为强随机密钥）─────────────────────
-JWT_SECRET_KEY=CHANGE_ME_USE_strong_random_key_here
-
-# ── VulnSeeker 原有的配置 ──────────────────────────────
-# （从 .env.example 或 VulnSeeker README 复制过来）
-CODEQL_PATH=/path/to/codeql
-GITHUB_TOKEN=ghp_your_github_token
-OPENAI_API_KEY=sk-...
-# ... 其他 LLM provider 配置
+cp .env.example .env
 ```
 
 ---
 
-## 3. 安装后端依赖
+## 3. 准备 Conda 后端环境
 
 ```bash
-cd backend
-pip install -r requirements.txt
+conda create -n vulnseeker python=3.10
+conda activate vulnseeker
+pip install -r backend/requirements.txt
 ```
 
 ---
 
-## 4. 启动后端
+## 4. 🚀打开第一个terminal启动后端
 
 ```bash
+conda activate vulnseeker
 cd backend
 uvicorn main:application --host 0.0.0.0 --port 8000 --reload
 ```
@@ -66,7 +54,7 @@ uvicorn main:application --host 0.0.0.0 --port 8000 --reload
 
 ---
 
-## 5. 安装前端依赖
+## 5. 安装前端依赖（只需第一次运行时操作）
 
 ```bash
 cd frontend
@@ -75,7 +63,7 @@ npm install
 
 ---
 
-## 6. 启动前端
+## 6. 🚀打开第二个terminal启动前端
 
 ```bash
 cd frontend
@@ -90,7 +78,7 @@ npm run dev
 
 1. 打开 http://localhost:5173
 2. 点击 **Register** 注册账号
-3. 登录后点击 **New Task** 创建分析任务（输入 GitHub 仓库如 `redis/redis`，选择语言 `c`）
+3. 登录后点击 **New Task** 创建分析任务（输入 GitHub 仓库如 `redis/redis`，选择语言 `cpp`）
 4. 点击 **Run** 启动分析，实时日志会在页面显示
 5. 分析完成后，切换到 **Results** 视图浏览 Issues 列表
 6. 点击任意 Issue 查看详情，设置 Manual Decision

@@ -1,4 +1,3 @@
-
 """
 example.py
 ----------
@@ -9,7 +8,6 @@ which handles:
 1) Fetching CodeQL databases
 2) Running CodeQL queries
 3) Analyzing results with LLM
-4) Opening the results UI (once at the end)
 """
 
 import sys
@@ -35,8 +33,6 @@ def main():
     - Run CodeQL queries
     - Classify findings using the configured LLM provider
     - Write results to the output directory
-    
-    After processing both repositories, the results UI is opened once.
     """
     # Initialize logging
     setup_logging()
@@ -48,7 +44,6 @@ def main():
         repo="videolan/vlc",
         lang="c",
         threads=4,  # Lower threads to avoid GitHub rate limits
-        open_ui=False  # Open UI once at the end
     )
     
     # Process redis/redis

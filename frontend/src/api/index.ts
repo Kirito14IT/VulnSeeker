@@ -10,6 +10,7 @@ import type {
   UserCreate,
   UserLogin,
   Task,
+  TaskWithUser,
   TaskCreate,
   IssueSummary,
   IssueDetail,
@@ -114,6 +115,47 @@ export const legacyApi = {
 };
 
 export const systemApi = {
-  validate: () =>
-    api.get<ConfigValidationResponse>('/api/system/validate').then((r) => r.data),
+  validate: async (): Promise<ConfigValidationResponse> => {
+    const response = await api.get('/api/system/validate');
+    return response.data;
+  },
+  fetchQLDeps: async (): Promise<{ status: string }> => {
+    const response = await api.post('/api/system/fetch-ql-deps');
+    return response.data;
+  },
+};
+
+// ── Admin ────────────────────────────────────────────────────────────────────
+
+export const adminApi = {
+  listUsers: () =>
+    api.get<User[]>('/api/admin/users').then((r) => r.data),
+
+  getUser: (id: number) =>
+    api.get<User>(`/api/admin/users/${id}`).then((r) => r.data),
+
+  createUser: (data: { username: string; email: string; password: string; role?: string }) =>
+    api.post<User>('/api/admin/users', data).then((r) => r.data),
+
+  updateUser: (id: number, data: { username?: string; email?: string; password?: string; role?: string }) =>
+    api.put<User>(`/api/admin/users/${id}`, data).then((r) => r.data),
+
+  deleteUser: (id: number) =>
+    api.delete(`/api/admin/users/${id}`),
+
+  // ── Tasks ────────────────────────────────────────────────────────────
+  listTasks: () =>
+    api.get<TaskWithUser[]>('/api/admin/tasks').then((r) => r.data),
+
+  getTask: (id: number) =>
+    api.get<TaskWithUser>(`/api/admin/tasks/${id}`).then((r) => r.data),
+
+  createTask: (data: TaskCreate & { user_id?: number }) =>
+    api.post<TaskWithUser>('/api/admin/tasks', data).then((r) => r.data),
+
+  updateTask: (id: number, data: Partial<TaskCreate> & { status?: string; user_id?: number }) =>
+    api.put<TaskWithUser>(`/api/admin/tasks/${id}`, data).then((r) => r.data),
+
+  deleteTask: (id: number) =>
+    api.delete(`/api/admin/tasks/${id}`),
 };

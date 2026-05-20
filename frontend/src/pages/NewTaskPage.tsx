@@ -29,12 +29,20 @@ const FORCE_LABEL: Partial<Record<TaskSource, string>> = {
   local_src: 'Force rebuild the local CodeQL database even if a cached database already exists for this source tree',
 };
 
+// Available languages
+const LANGUAGE_OPTIONS = [
+  { label: 'C / C++', value: 'cpp' },
+  { label: 'Java / Kotlin', value: 'java' },
+  { label: 'JavaScript', value: 'javascript' },
+  { label: 'Python', value: 'python' },
+];
+
 
 export default function NewTaskPage() {
-  const [form] = Form.useForm<TaskCreate>();
+  const [form] = Form.useForm();
   const navigate = useNavigate();
   const sourceType = Form.useWatch('source_type', form) ?? 'github';
-  const forceLabel = FORCE_LABEL[sourceType];
+  const forceLabel = FORCE_LABEL[sourceType as TaskSource];
 
   useEffect(() => {
     if (sourceType === 'local_db') {
@@ -42,9 +50,15 @@ export default function NewTaskPage() {
     }
   }, [form, sourceType]);
 
-  const handleCreate = async (values: TaskCreate) => {
+  const handleCreate = async (values: any) => {
     try {
-      const task = await tasksApi.create(values);
+      // Ensure language is a string (comma separated if multiple)
+      const submitValues: TaskCreate = {
+        ...values,
+        language: Array.isArray(values.language) ? values.language.join(',') : values.language,
+      };
+      
+      const task = await tasksApi.create(submitValues);
       message.success('Task created');
       navigate(`/tasks/${task.id}`);
     } catch (error: unknown) {
@@ -53,7 +67,7 @@ export default function NewTaskPage() {
     }
   };
 
-  const currentHelp = SOURCE_HELP[sourceType];
+  const currentHelp = SOURCE_HELP[sourceType as TaskSource];
 
   return (
     <div style={{ padding: 24 }}>
@@ -83,18 +97,20 @@ export default function NewTaskPage() {
             </Paragraph>
           </div>
 
-          <Alert
-            type="info"
-            showIcon
-            message={currentHelp.title}
-            description={currentHelp.hint}
-            style={{ borderRadius: 18 }}
-          />
+          {currentHelp && (
+            <Alert
+              type="info"
+              showIcon
+              message={currentHelp.title}
+              description={currentHelp.hint}
+              style={{ borderRadius: 18 }}
+            />
+          )}
 
-          <Form<TaskCreate>
+          <Form
             form={form}
             layout="vertical"
-            initialValues={{ source_type: 'github', language: 'c', force: false }}
+            initialValues={{ source_type: 'github', language: ['cpp'], force: false }}
             onFinish={handleCreate}
           >
             <Form.Item name="source_type" label="Source Mode">
@@ -135,15 +151,11 @@ export default function NewTaskPage() {
 
             <Form.Item
               name="language"
-              label="Language"
-              rules={[{ required: true }]}
-              extra="The legacy query pack in this repository currently supports the C/C++ query set used by VulnSeeker."
+              label="Languages"
+              rules={[{ required: true, message: 'Select at least one language' }]}
+              extra="Select the languages to scan in the repository."
             >
-              <Radio.Group
-                options={[
-                  { label: 'C', value: 'c' },
-                ]}
-              />
+              <Checkbox.Group options={LANGUAGE_OPTIONS} />
             </Form.Item>
 
             {forceLabel && (

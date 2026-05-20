@@ -19,7 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from core.config import get_settings
 from core.database import init_db
-from api import auth, legacy_results, results, system, tasks
+from api import auth, admin, legacy_results, results, system, tasks
 from tasks import run_analysis
 
 
@@ -68,6 +68,16 @@ async def leave_task(sid, data):
 async def lifespan(app: FastAPI):
     # Startup: create database tables
     await init_db()
+    from core.database import AsyncSessionLocal
+    from services.analysis_service import AnalysisService
+
+    async with AsyncSessionLocal() as db:
+        service = AnalysisService(db)
+        removed_task_ids, cleanup_errors = await service.cleanup_orphan_task_artifacts()
+        if removed_task_ids:
+            print(f"Removed orphan web task artifacts: {removed_task_ids}")
+        for cleanup_error in cleanup_errors:
+            print(f"Failed to remove orphan web task artifact: {cleanup_error}")
     yield
     # Shutdown: cleanup if needed
 
@@ -98,6 +108,7 @@ fastapi_app.add_middleware(
 
 # Mount routers
 fastapi_app.include_router(auth.router)
+fastapi_app.include_router(admin.router)
 fastapi_app.include_router(tasks.router)
 fastapi_app.include_router(results.router)
 fastapi_app.include_router(legacy_results.router)

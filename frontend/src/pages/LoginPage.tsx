@@ -19,7 +19,7 @@ export default function LoginPage() {
       const resp = await authApi.login(values);
       login(resp.access_token, resp.user);
       message.success(`Welcome back, ${resp.user.username}!`);
-      navigate('/');
+      navigate(resp.user.role === 'admin' ? '/admin' : '/');
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
       message.error(e.response?.data?.detail ?? 'Login failed');

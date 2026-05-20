@@ -12,6 +12,7 @@ Example:
 """
 
 import subprocess
+import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -29,6 +30,77 @@ DEFAULT_CODEQL = get_codeql_path()
 DEFAULT_LANG = "c"  # Mapped to data/queries/cpp for some tasks
 
 
+def _format_process_output(stdout: str | None, stderr: str | None) -> str:
+    """
+    Return a concise process output block for error messages.
+    """
+    output_parts = []
+    for stream_name, content in (("stdout", stdout), ("stderr", stderr)):
+        text = (content or "").strip()
+        if not text:
+            continue
+        if len(text) > 8000:
+            text = "... output truncated ...\n" + text[-8000:]
+        output_parts.append(f"CodeQL {stream_name}:\n{text}")
+    return "\n".join(output_parts)
+
+
+def _run_codeql_command(command: list[str], failure_message: str) -> None:
+    """
+    Run a CodeQL command and preserve its stdout/stderr in failure details.
+    """
+    try:
+        subprocess.run(
+            command,
+            check=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except FileNotFoundError as e:
+        raise CodeQLConfigError(
+            f"CodeQL executable not found: {command[0]}. "
+            "Please check your CODEQL_PATH configuration."
+        ) from e
+    except subprocess.CalledProcessError as e:
+        output = _format_process_output(e.stdout, e.stderr)
+        detail = f"\n{output}" if output else ""
+        raise CodeQLExecutionError(
+            f"{failure_message}: CodeQL returned exit code {e.returncode}{detail}"
+        ) from e
+
+
+def append_csv(source_csv: str, dest_csv: str) -> None:
+    """
+    Appends the content of source_csv to dest_csv and removes source_csv.
+    If dest_csv does not exist, it creates it.
+    """
+    if not os.path.exists(source_csv):
+        return
+    with open(source_csv, "r", encoding="utf-8") as f_src:
+        content = f_src.read()
+    
+    # If the file exists and has content, make sure it ends with a newline before appending
+    if os.path.exists(dest_csv):
+        with open(dest_csv, "a", encoding="utf-8") as f_dst:
+            if os.path.getsize(dest_csv) > 0:
+                with open(dest_csv, "r", encoding="utf-8") as check_nl:
+                    # Move to the end minus 1 byte
+                    try:
+                        check_nl.seek(os.path.getsize(dest_csv) - 1)
+                        if check_nl.read(1) != '\n':
+                            f_dst.write('\n')
+                    except OSError:
+                        pass
+            f_dst.write(content)
+    else:
+        with open(dest_csv, "w", encoding="utf-8") as f_dst:
+            f_dst.write(content)
+    os.remove(source_csv)
+
+
 def pre_compile_ql(file_name: str, threads: int, codeql_bin: str) -> None:
     """
     Pre-compile a single .ql file using CodeQL.
@@ -44,30 +116,17 @@ def pre_compile_ql(file_name: str, threads: int, codeql_bin: str) -> None:
     """
     qlx_path = Path(str(file_name) + "x")
     if not qlx_path.exists():
-        try:
-            subprocess.run(
-                [
-                    codeql_bin,
-                    "query",
-                    "compile",
-                    file_name,
-                    f'--threads={threads}',
-                    "--precompile"
-                ],
-                check=True,
-                text=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-        except FileNotFoundError as e:
-            raise CodeQLConfigError(
-                f"CodeQL executable not found: {codeql_bin}. "
-                "Please check your CODEQL_PATH configuration."
-            ) from e
-        except subprocess.CalledProcessError as e:
-            raise CodeQLExecutionError(
-                f"Failed to compile query {file_name}: CodeQL returned exit code {e.returncode}"
-            ) from e
+        _run_codeql_command(
+            [
+                codeql_bin,
+                "query",
+                "compile",
+                file_name,
+                f'--threads={threads}',
+                "--precompile"
+            ],
+            f"Failed to compile query {file_name}",
+        )
 
 
 def compile_all_queries(queries_folder: str, threads: int, codeql_bin: str) -> None:
@@ -113,47 +172,24 @@ def run_one_query(
         CodeQLExecutionError: If query execution or BQRS decoding fails.
     """
     # Run the query
-    try:
-        subprocess.run(
-            [
-                codeql_bin, "query", "run", query_file,
-                f'--database={curr_db}',
-                f'--output={output_bqrs}',
-                f'--threads={threads}'
-            ],
-            check=True,
-            text=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-    except FileNotFoundError as e:
-        raise CodeQLConfigError(
-            f"CodeQL executable not found: {codeql_bin}. "
-            "Please check your CODEQL_PATH configuration."
-        ) from e
-    except subprocess.CalledProcessError as e:
-        raise CodeQLExecutionError(
-            f"Failed to run query {query_file} on database {curr_db}: "
-            f"CodeQL returned exit code {e.returncode}"
-        ) from e
+    _run_codeql_command(
+        [
+            codeql_bin, "query", "run", query_file,
+            f'--database={curr_db}',
+            f'--output={output_bqrs}',
+            f'--threads={threads}'
+        ],
+        f"Failed to run query {query_file} on database {curr_db}",
+    )
 
     # Decode BQRS to CSV
-    try:
-        subprocess.run(
-            [
-                codeql_bin, "bqrs", "decode", output_bqrs,
-                '--format=csv', f'--output={output_csv}'
-            ],
-            check=True,
-            text=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-    except subprocess.CalledProcessError as e:
-        raise CodeQLExecutionError(
-            f"Failed to decode BQRS file {output_bqrs} to CSV: "
-            f"CodeQL returned exit code {e.returncode}"
-        ) from e
+    _run_codeql_command(
+        [
+            codeql_bin, "bqrs", "decode", output_bqrs,
+            '--format=csv', f'--output={output_csv}'
+        ],
+        f"Failed to decode BQRS file {output_bqrs} to CSV",
+    )
 
 
 def run_queries_on_db(
@@ -162,6 +198,7 @@ def run_queries_on_db(
     queries_folder: str,
     threads: int,
     codeql_bin: str,
+    current_lang: str,
     timeout: int = 300
 ) -> None:
     """
@@ -174,6 +211,7 @@ def run_queries_on_db(
         queries_folder (str): Folder containing .ql queries for database analysis.
         threads (int): Number of threads to use during query execution.
         codeql_bin (str): Full path to the 'codeql' executable.
+        current_lang (str): The language currently being analyzed.
         timeout (int, optional): Timeout in seconds for the 'database analyze' command.
             Defaults to 300.
     
@@ -187,48 +225,43 @@ def run_queries_on_db(
         for file_path in tools_folder_path.iterdir():
             if file_path.is_file() and file_path.suffix.lower() == ".ql":
                 file_stem = file_path.stem
+                output_bqrs = str(Path(curr_db) / f"{file_stem}_{current_lang}.bqrs")
+                output_csv = str(Path(curr_db) / f"{file_stem}_{current_lang}.csv")
+                final_csv = str(Path(curr_db) / f"{file_stem}.csv")
+                
                 run_one_query(
                     str(file_path),
                     curr_db,
-                    str(Path(curr_db) / f"{file_stem}.bqrs"),
-                    str(Path(curr_db) / f"{file_stem}.csv"),
+                    output_bqrs,
+                    output_csv,
                     threads,
                     codeql_bin
                 )
+                
+                append_csv(output_csv, final_csv)
     else:
         logger.warning("Tools folder '%s' not found. Skipping individual queries.", tools_folder)
 
     # 2) Run the entire queries folder in one go using database analyze
     queries_folder_path = Path(queries_folder)
     if queries_folder_path.is_dir():
-        try:
-            subprocess.run(
-                [
-                    codeql_bin,
-                    "database",
-                    "analyze",
-                    curr_db,
-                    queries_folder,
-                    f'--timeout={timeout}',
-                    '--format=csv',
-                    f'--output={str(Path(curr_db) / "issues.csv")}',
-                    f'--threads={threads}'
-                ],
-                check=True,
-                text=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-        except FileNotFoundError as e:
-            raise CodeQLConfigError(
-                f"CodeQL executable not found: {codeql_bin}. "
-                "Please check your CODEQL_PATH configuration."
-            ) from e
-        except subprocess.CalledProcessError as e:
-            raise CodeQLExecutionError(
-                f"Failed to analyze database {curr_db} with queries from {queries_folder}: "
-                f"CodeQL returned exit code {e.returncode}"
-            ) from e
+        output_issues = str(Path(curr_db) / f"issues_{current_lang}.csv")
+        final_issues = str(Path(curr_db) / "issues.csv")
+        _run_codeql_command(
+            [
+                codeql_bin,
+                "database",
+                "analyze",
+                curr_db,
+                queries_folder,
+                f'--timeout={timeout}',
+                '--format=csv',
+                f'--output={output_issues}',
+                f'--threads={threads}'
+            ],
+            f"Failed to analyze database {curr_db} with queries from {queries_folder}",
+        )
+        append_csv(output_issues, final_issues)
     else:
         logger.warning("Queries folder '%s' not found. Skipping database analysis.", queries_folder)
 
@@ -259,14 +292,20 @@ def compile_and_run_codeql_queries(
         CodeQLConfigError: If CodeQL executable not found (from compilation or query execution).
         CodeQLExecutionError: If query compilation or execution fails.
     """
-    # Setup paths
-    queries_subfolder = "cpp" if lang == "c" else lang
-    queries_folder = str(Path("data/queries") / queries_subfolder / "issues")
-    tools_folder = str(Path("data/queries") / queries_subfolder / "tools")
+    # Split by comma if multiple languages are provided
+    lang_list = [l.strip() for l in lang.split(",")]
+    
+    for current_lang in lang_list:
+        # Setup paths
+        queries_subfolder = "cpp" if current_lang == "c" else current_lang
+        queries_folder = str(Path("data/queries") / queries_subfolder / "issues")
+        tools_folder = str(Path("data/queries") / queries_subfolder / "tools")
 
-    # Step 1: Pre-compile all queries
-    compile_all_queries(tools_folder, threads, codeql_bin)
-    compile_all_queries(queries_folder, threads, codeql_bin)
+        # Step 1: Pre-compile all queries
+        if Path(tools_folder).exists():
+            compile_all_queries(tools_folder, threads, codeql_bin)
+        if Path(queries_folder).exists():
+            compile_all_queries(queries_folder, threads, codeql_bin)
 
     # Step 2: Run queries
     # Validate database directory exists and is accessible
@@ -310,20 +349,32 @@ def compile_and_run_codeql_queries(
                 logger.warning("Cannot access database folder '%s'. Skipping.", curr_db)
                 continue
         
-        # If issues.csv was not generated yet, or FunctionTree.csv missing, run
-        if (not (curr_db_path / "FunctionTree.csv").exists() or
-                not (curr_db_path / "issues.csv").exists()):
-            logger.info("Processing DB: %s", curr_db)
+        # We need to run queries for each language and append the results.
+        # So we delete the existing issues.csv and FunctionTree.csv to start fresh for this run
+        issues_csv = curr_db_path / "issues.csv"
+        function_tree_csv = curr_db_path / "FunctionTree.csv"
+        
+        if issues_csv.exists():
+            issues_csv.unlink()
+        if function_tree_csv.exists():
+            function_tree_csv.unlink()
+            
+        logger.info("Processing DB: %s", curr_db)
+        for current_lang in lang_list:
+            queries_subfolder = "cpp" if current_lang == "c" else current_lang
+            queries_folder = str(Path("data/queries") / queries_subfolder / "issues")
+            tools_folder = str(Path("data/queries") / queries_subfolder / "tools")
+            
+            logger.info("Running queries for language: %s", current_lang)
             run_queries_on_db(
                 curr_db,
                 tools_folder,
                 queries_folder,
                 threads,
                 codeql_bin,
+                current_lang,
                 timeout
             )
-        else:
-            logger.info("Output files already exist for this DB, skipping...")
 
     logger.info("[+] done!")
 

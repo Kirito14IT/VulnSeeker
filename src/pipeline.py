@@ -5,7 +5,6 @@ This module coordinates the complete analysis pipeline:
 1. Fetch CodeQL databases
 2. Run CodeQL queries
 3. Classify results with LLM
-4. Open UI (optional)
 """
 # Ignore pydantic warnings
 import warnings
@@ -32,7 +31,6 @@ from src.utils.exceptions import (
     VulnSeekerError
 )
 from src.vulnseeker import IssueAnalyzer
-from src.ui.ui_app import main as ui_main
 
 # Initialize logging
 setup_logging()
@@ -185,7 +183,7 @@ def step3_classify_results_with_llm(dbs_dir: str, lang: str) -> None:
     
     Args:
         dbs_dir: Path to the directory containing CodeQL databases.
-        lang: Programming language code.
+        lang: Programming language code (can be comma-separated list).
     
     Raises:
         LLMConfigError: If LLM configuration is invalid (e.g., missing API credentials).
@@ -198,8 +196,11 @@ def step3_classify_results_with_llm(dbs_dir: str, lang: str) -> None:
     logger.info("-" * 60)
     
     try:
-        analyzer = IssueAnalyzer(lang=lang)
-        analyzer.run(dbs_dir)
+        lang_list = [l.strip() for l in lang.split(",")]
+        for current_lang in lang_list:
+            logger.info(f"Classifying results for language: {current_lang}")
+            analyzer = IssueAnalyzer(lang=current_lang)
+            analyzer.run(dbs_dir)
     except LLMConfigError as e:
         logger.error("[-] Step 3: LLM configuration error: %s", e)
         _log_exception_cause(e)
@@ -227,20 +228,6 @@ def step3_classify_results_with_llm(dbs_dir: str, lang: str) -> None:
         logger.error("   This step writes analysis results to disk and creates output directories.")
         logger.error("   Please check file permissions and disk space.")
         sys.exit(1)
-
-
-def step4_open_ui() -> None:
-    """
-    Step 4: Open the results UI (optional).
-
-    Note:
-        This function does not raise exceptions. UI errors are handled internally by the UI module.
-    """
-    logger.info("\n[4/4] Opening UI")
-    logger.info("-" * 60)
-    logger.info("[+] Pipeline completed successfully!")
-    logger.info("Opening results UI...")
-    ui_main()
 
 
 def main_analyze() -> None:
@@ -288,20 +275,18 @@ def analyze_pipeline(
     repo: Optional[str] = None,
     lang: str = "c",
     threads: int = 16,
-    open_ui: bool = True,
     force: bool = False,
     local_db_path: Optional[str] = None,
     local_src_path: Optional[str] = None
 ) -> None:
     """
-    Run the complete VulnSeeker pipeline: fetch, analyze, classify, and optionally open UI.
+    Run the complete VulnSeeker pipeline: fetch, analyze, classify.
 
     Args:
         repo: GitHub repository name (e.g., "redis/redis"). Required if local_db_path and
               local_src_path are not provided.
         lang: Programming language code. Defaults to "c".
         threads: Number of threads for CodeQL operations. Defaults to 16.
-        open_ui: Whether to open the UI after completion. Defaults to True.
         force: If True, re-download/rebuild even if database exists. Defaults to False.
         local_db_path: Path to local CodeQL database. If provided, skips GitHub fetch.
         local_src_path: Path to local source code. If provided, builds CodeQL database
@@ -349,20 +334,6 @@ See README.md for configuration reference.
     
     # Step 3: Classify results with LLM
     step3_classify_results_with_llm(dbs_dir, lang)
-    
-    # Step 4: Open UI (optional)
-    if open_ui:
-        step4_open_ui()
-
-
-def main_ui() -> None:
-    """
-    CLI entry point to open the UI without running analysis.
-    
-    Expected usage: vulnseeker-ui
-    """
-    logger.info("Opening VulnSeeker UI...")
-    ui_main()
 
 
 def main_validate() -> None:
@@ -381,47 +352,6 @@ def main_validate() -> None:
         for error in errors:
             logger.error(error)
         sys.exit(1)
-
-
-def main_list() -> None:
-    """
-    CLI entry point to list analyzed repositories.
-    
-    Expected usage: vulnseeker-list
-    """
-    from src.ui.results_loader import ResultsLoader
-    
-    results_dir = Path("output/results")
-    if not results_dir.exists():
-        logger.info("No results found. Run 'vulnseeker <org/repo>' first.")
-        return
-    
-    loader = ResultsLoader()
-    
-    # Currently only 'c' language is supported
-    lang = "c"
-    issues, _ = loader.load_all_issues(lang)
-    
-    if not issues:
-        logger.info("No analyzed repositories found.")
-        return
-    
-    # Group issues by repo
-    repos = {}
-    for issue in issues:
-        repo = issue.repo
-        if repo not in repos:
-            repos[repo] = {"true": 0, "false": 0, "needs_more_data to decide": 0}
-        repos[repo][issue.status] += 1
-    
-    logger.info("Analyzed repositories:")
-    logger.info("-" * 50)
-    for repo, counts in sorted(repos.items()):
-        total = counts["true"] + counts["false"] + counts["needs_more_data to decide"]
-        logger.info(
-            "  %-30s %3d issues (%d True positive, %d False positive, %d Needs more data to decide)",
-            repo, total, counts["true"], counts["false"], counts["needs_more_data to decide"]
-        )
 
 
 def main_example() -> None:

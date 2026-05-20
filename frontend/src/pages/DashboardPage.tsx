@@ -45,8 +45,9 @@ export default function DashboardPage() {
       await tasksApi.delete(id);
       setTasks((previous) => previous.filter((task) => task.id !== id));
       message.success('Task deleted');
-    } catch {
-      message.error('Failed to delete task');
+    } catch (error: unknown) {
+      const response = error as { response?: { data?: { detail?: string } } };
+      message.error(response.response?.data?.detail ?? 'Failed to delete task');
     }
   };
 
@@ -184,7 +185,7 @@ export default function DashboardPage() {
             <Space direction="vertical" size={8}>
               <Tag color="geekblue">Legacy UI</Tag>
               <Title level={4} style={{ margin: 0 }}>Global Results Browser</Title>
-              <Text type="secondary">Browse the shared root `output/results` view just like the old CLI UI.</Text>
+              <Text type="secondary">Browse the shared root `output/results` view.</Text>
             </Space>
           </Card>
         </Col>
@@ -197,7 +198,7 @@ export default function DashboardPage() {
             <Space direction="vertical" size={8}>
               <Tag color="cyan">CLI Helpers</Tag>
               <Title level={4} style={{ margin: 0 }}>Stats & Validation</Title>
-              <Text type="secondary">Use the web equivalents of `vulnseeker-list` and `vulnseeker-validate`.</Text>
+              <Text type="secondary">Use the web equivalents of `vulnseeker-validate`.</Text>
             </Space>
           </Card>
         </Col>

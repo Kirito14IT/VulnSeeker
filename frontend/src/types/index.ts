@@ -6,6 +6,7 @@ export interface User {
   id: number;
   username: string;
   email: string;
+  role: string;
   created_at: string;
 }
 
@@ -43,6 +44,10 @@ export interface Task {
   created_at: string;
   updated_at: string | null;
   completed_at: string | null;
+}
+
+export interface TaskWithUser extends Task {
+  username: string;
 }
 
 export type LLMDecision = 'true' | 'false' | 'more' | 'raw';

@@ -23,7 +23,7 @@ We recommend using Python 3.10 – 3.13. Python 3.14+ is not supported (grpcio w
 
 - **Code Style**: Follow Python PEP 8 style guidelines
 - **Type Hints**: Add type hints to all new functions (see [Type Checking](#type-checking) below)
-- **Testing**: Test your changes using `examples/example.py` and `examples/ui_example.py`
+- **Testing**: Test your changes using `examples/example.py`
 - **Documentation**: Update the README.md if you're adding new features or changing behavior
 - **Commit Messages**: Write clear, descriptive commit messages
 - **Pull Requests**: 
@@ -45,7 +45,7 @@ git clone https://github.com/Kirito14IT/VulnSeeker.git
 cd VulnSeeker
 ```
 
-3. Install the project's requirements and configure your environment. See [README.md](README.md) for detailed instructions on installing dependencies, setting up CodeQL packs, and configuring your `.env` file.
+3. Install the project's requirements and configure your environment. See [WEB_STARTUP.md](WEB_STARTUP.md) for the current Conda-based web startup flow, CodeQL setup, and `.env` configuration.
 
 4. Make local changes to your fork by editing files
 
@@ -54,9 +54,6 @@ cd VulnSeeker
 ```
 # Test the full pipeline
 python examples/example.py
-
-# Test UI changes (if applicable)
-python examples/ui_example.py
 ```
 
 6. Commit your changes. Use clear, descriptive commit messages.
@@ -116,7 +113,6 @@ print("Processing database:", db_path)  # Don't use print()
 Please test your changes manually using the example scripts:
 
 - `python examples/example.py` - Tests the full pipeline
-- `python examples/ui_example.py` - Tests the UI
 
 Ensure your code works with Python 3.10-3.13 before submitting.
 
@@ -134,7 +130,7 @@ LOG_LEVEL=WARNING python examples/example.py
 This project uses [mypy](https://mypy.readthedocs.io/) for static type checking. Run mypy before submitting a pull request:
 
 ```bash
-poetry run mypy src
+mypy src
 ```
 
 ### Guidelines

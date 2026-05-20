@@ -16,6 +16,7 @@ export default function LegacySupportPage() {
   const [stats, setStats] = useState<RepoStat[]>([]);
   const [validation, setValidation] = useState<ConfigValidationResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fetchingDeps, setFetchingDeps] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -36,6 +37,18 @@ export default function LegacySupportPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const handleFetchDeps = async () => {
+    setFetchingDeps(true);
+    try {
+      await systemApi.fetchQLDeps();
+      message.success('CodeQL dependencies fetched successfully.');
+    } catch {
+      message.error('Failed to fetch CodeQL dependencies');
+    } finally {
+      setFetchingDeps(false);
+    }
+  };
 
   const columns: ColumnsType<RepoStat> = [
     {
@@ -64,15 +77,20 @@ export default function LegacySupportPage() {
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
               Back
             </Button>
-            <Button icon={<ReloadOutlined />} onClick={() => void loadData()}>
-              Refresh
-            </Button>
+            <Space>
+              <Button loading={fetchingDeps} onClick={handleFetchDeps}>
+                Get QL dependencies
+              </Button>
+              <Button icon={<ReloadOutlined />} onClick={() => void loadData()}>
+                Refresh
+              </Button>
+            </Space>
           </Space>
           <Title level={3} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>
             Legacy Helper Commands
           </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Web equivalents of `vulnseeker-list` and `vulnseeker-validate`.
+            Web equivalents of `vulnseeker-validate`.
           </Paragraph>
         </Space>
       </Card>
