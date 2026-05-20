@@ -9,6 +9,7 @@ import {
   Row,
   Col,
   Select,
+  Segmented,
   Space,
   Spin,
   Table,
@@ -18,6 +19,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 
 import type { IssueDetail, IssueSummary } from '../types';
+import MarkdownSummary from './MarkdownSummary';
 
 
 const { Text, Paragraph } = Typography;
@@ -137,6 +139,7 @@ export default function IssueExplorer({
   const [search, setSearch] = useState('');
   const [llmFilter, setLlmFilter] = useState<string>('All');
   const [decisionFilter, setDecisionFilter] = useState<string>('All');
+  const [summaryMode, setSummaryMode] = useState<'rendered' | 'raw'>('rendered');
 
   const filteredIssues = useMemo(() => (
     issues.filter((issue) => {
@@ -214,6 +217,7 @@ export default function IssueExplorer({
     && 'function_name' in issueDetail.raw_data.current_function
     ? String(issueDetail.raw_data.current_function.function_name).replace(/^"+|"+$/g, '')
     : null;
+  const selectedIssueFinalized = issueDetail?.finalized ?? selectedIssue?.finalized ?? false;
 
   return (
     <>
@@ -370,10 +374,25 @@ export default function IssueExplorer({
                 )}
 
                 <Divider />
-                <Text strong>{issueDetail.finalized ? 'LLM Final Answer' : 'Raw Match Summary'}</Text>
-                <Paragraph style={{ marginTop: 8, whiteSpace: 'pre-wrap', fontSize: 13 }}>
-                  {issueDetail.summary || 'No summary available'}
-                </Paragraph>
+                <Space wrap style={{ width: '100%', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text strong>{selectedIssueFinalized ? 'LLM Final Answer' : 'Raw Match Summary'}</Text>
+                  <Segmented
+                    size="small"
+                    value={summaryMode}
+                    onChange={(value) => setSummaryMode(value as 'rendered' | 'raw')}
+                    options={[
+                      { label: 'Rendered', value: 'rendered' },
+                      { label: 'Raw', value: 'raw' },
+                    ]}
+                  />
+                </Space>
+                {summaryMode === 'rendered' ? (
+                  <MarkdownSummary content={issueDetail.summary || 'No summary available'} />
+                ) : (
+                  <Paragraph style={{ marginTop: 8, whiteSpace: 'pre-wrap', fontSize: 13 }}>
+                    {issueDetail.summary || 'No summary available'}
+                  </Paragraph>
+                )}
               </div>
             )}
           </Card>

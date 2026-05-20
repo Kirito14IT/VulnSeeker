@@ -12,6 +12,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import NewTaskPage from './pages/NewTaskPage';
 import TaskResultPage from './pages/TaskResultPage';
+import TaskVisualizationPage from './pages/TaskVisualizationPage';
 import GlobalResultsPage from './pages/GlobalResultsPage';
 import LegacySupportPage from './pages/LegacySupportPage';
 import SecureCodingEvalPage from './pages/SecureCodingEvalPage';
@@ -71,6 +72,10 @@ function App() {
             <Route
               path="/tasks/:taskId"
               element={<ProtectedRoute><TaskResultPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/tasks/:taskId/visualization"
+              element={<ProtectedRoute><TaskVisualizationPage /></ProtectedRoute>}
             />
             <Route
               path="/legacy/results"
