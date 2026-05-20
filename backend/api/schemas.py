@@ -26,6 +26,7 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: str
+    role: str = "user"
     created_at: datetime
 
     model_config = {"from_attributes": True}

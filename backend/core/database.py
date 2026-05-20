@@ -61,6 +61,15 @@ def _upgrade_schema(sync_conn) -> None:
     """
     inspector = inspect(sync_conn)
 
+    # ── Users table migration: add role column ────────────────────────────
+    if "users" in inspector.get_table_names():
+        columns = {column["name"] for column in inspector.get_columns("users")}
+        if "role" not in columns:
+            sync_conn.execute(
+                text("ALTER TABLE users ADD COLUMN role VARCHAR(16) NOT NULL DEFAULT 'user'")
+            )
+
+    # ── Tasks table migration ─────────────────────────────────────────────
     if "tasks" in inspector.get_table_names():
         columns = {column["name"] for column in inspector.get_columns("tasks")}
         statements = []
