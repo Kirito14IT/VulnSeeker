@@ -1,4 +1,4 @@
-# VulnSeeker Web — 启动说明
+# VulnSeeker  —  Web 启动说明
 
 ## 前置要求
 
@@ -22,42 +22,10 @@ CREATE DATABASE vulnseeker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ## 2. 配置环境变量
 
-在项目根目录创建 `.env` 文件：
+项目首次拉取后，根目录只有 `.env.example` 范例文件。复制它为 `.env`，再按本机环境填写真实值：
 
 ```bash
-# ── MySQL ─────────────────────────────────────────────
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USER=root
-MYSQL_PASSWORD=your_mysql_password
-MYSQL_DATABASE=vulnseeker
-
-# ── JWT（生产环境请替换为强随机密钥）─────────────────────
-JWT_SECRET_KEY=CHANGE_ME_USE_strong_random_key_here
-
-# ── VulnSeeker 原有的配置 ──────────────────────────────
-# （从 .env.example 或 VulnSeeker README 复制过来）
-# CODEQL_PATH 指向 CodeQL CLI 可执行文件。
-# Windows 示例：CODEQL_PATH=D:\Tools\codeql\codeql.exe
-# Linux / macOS 示例：CODEQL_PATH=/opt/codeql/codeql
-CODEQL_PATH=/path/to/codeql
-GITHUB_TOKEN=ghp_your_github_token
-
-# ── LLM Provider ─────────────────────────────────────
-# OpenAI 官方接口：
-PROVIDER=openai
-MODEL=gpt-4o
-OPENAI_API_KEY=sk-...
-
-# OpenAI 兼容接口（如阿里云百炼、内网代理、中转站）：
-# PROVIDER=openai
-# MODEL=qwen-plus
-# OPENAI_API_KEY=your_compatible_api_key
-# OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-# 也兼容使用 OPENAI_API_BASE 或 OPENAI_COMPATIBLE_BASE_URL
-# 使用兼容接口时，系统会自动将 qwen-plus 这类模型路由为 openai/qwen-plus。
-
-# ... 其他 LLM provider 配置
+cp .env.example .env
 ```
 
 ---
@@ -72,7 +40,7 @@ pip install -r backend/requirements.txt
 
 ---
 
-## 4. 启动后端
+## 4. 🚀打开第一个terminal启动后端
 
 ```bash
 conda activate vulnseeker
@@ -86,7 +54,7 @@ uvicorn main:application --host 0.0.0.0 --port 8000 --reload
 
 ---
 
-## 5. 安装前端依赖
+## 5. 安装前端依赖（只需第一次运行时操作）
 
 ```bash
 cd frontend
@@ -95,7 +63,7 @@ npm install
 
 ---
 
-## 6. 启动前端
+## 6. 🚀打开第二个terminal启动前端
 
 ```bash
 cd frontend
