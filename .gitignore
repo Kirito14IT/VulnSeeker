@@ -47,11 +47,9 @@ backend/.env.local
 backend/.env.*.local
 
 # ── Runtime data directories ──────────────────────────────────────────────────
-# These directories are populated at runtime and should not be committed
-output/databases/
-output/results/
-output/zip_dbs/
-output/web_tasks/
+# Analysis workspaces, CodeQL DBs, generated reports, and rendered previews are
+# populated at runtime and must not be committed.
+output/
 
 # Backend runtime data
 backend/output/
@@ -94,6 +92,9 @@ ehthumbs.db
 # ── Cursor IDE ────────────────────────────────────────────────────────────────
 .cursor/
 
+# ── Codex / local agent state ─────────────────────────────────────────────────
+.codex
+
 # ── Temp / backup files ──────────────────────────────────────────────────────
 *.tmp
 *.bak
@@ -116,6 +117,15 @@ backend/.pytest_cache/
 # ── Local development / demo repos ──────────────────────────────────────────
 # Individual repos cloned for local analysis
 local_repos/demo_c_project/
+
+# ── Generated document / presentation artifacts ──────────────────────────────
+# Keep source Markdown, code, and hand-written docs in Git; keep rendered Office
+# files and local presentation workspaces out of normal code-review commits.
+*.docx
+*.pptx
+ppt-master/
+prompt-template.html
+prompt_template_viewer.html
 
 # ── Corrupted / malformed directories (Windows path artifacts) ───────────────
 # Pattern matches Windows shell path corruption artifacts

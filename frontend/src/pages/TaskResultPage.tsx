@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Card, Col, Empty, Row, Space, Spin, Tag, Typography, message } from 'antd';
 import {
   ArrowLeftOutlined,
+  BarChartOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
@@ -266,6 +267,14 @@ export default function TaskResultPage() {
               }}>
                 Refresh
               </Button>
+              {canLoadIssueResults(task) && (
+                <Button
+                  icon={<BarChartOutlined />}
+                  onClick={() => navigate(`/tasks/${tid}/visualization`)}
+                >
+                  Visualization / Report
+                </Button>
+              )}
             </Space>
           </Col>
         </Row>

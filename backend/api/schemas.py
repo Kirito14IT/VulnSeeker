@@ -93,6 +93,7 @@ class IssueDetail(BaseModel):
     file: str
     line: int
     status: str
+    finalized: bool = True
     issue_type: str
     repo: str
     manual_decision: Optional[str] = None
