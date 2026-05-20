@@ -83,6 +83,22 @@ class TaskResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AdminTaskResponse(TaskResponse):
+    """Task response with username, used in admin views."""
+    username: str = ""
+
+
+class TaskUpdate(BaseModel):
+    """Admin-only schema for updating a task."""
+    repo_url: Optional[str] = Field(default=None, max_length=512)
+    source_type: Optional[TaskSource] = None
+    source_path: Optional[str] = Field(default=None, max_length=1024)
+    language: Optional[str] = Field(default=None, max_length=256)
+    status: Optional[str] = None
+    force: Optional[bool] = None
+    user_id: Optional[int] = None
+
+
 # ── Issues ─────────────────────────────────────────────────────────────────────
 
 class IssueSummary(BaseModel):

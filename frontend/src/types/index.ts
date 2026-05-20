@@ -46,6 +46,10 @@ export interface Task {
   completed_at: string | null;
 }
 
+export interface TaskWithUser extends Task {
+  username: string;
+}
+
 export type LLMDecision = 'true' | 'false' | 'more' | 'raw';
 
 export interface IssueSummary {

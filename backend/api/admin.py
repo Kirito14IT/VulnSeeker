@@ -10,12 +10,15 @@ from typing import Optional
 
 from core.database import get_db
 from core.security import hash_password
-from models.models import User
+from models.models import User, Task, TaskStatus, TaskSource
 from api.auth import get_current_user
 from api.schemas import (
     UserResponse,
     UserCreateByAdmin,
     UserUpdate,
+    AdminTaskResponse,
+    TaskCreate,
+    TaskUpdate,
 )
 
 
@@ -144,4 +147,132 @@ async def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     await db.delete(user)
+    await db.commit()
+
+
+# ── Task Management ───────────────────────────────────────────────────────────
+
+
+@router.get("/tasks", response_model=list[AdminTaskResponse])
+async def list_tasks(
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all tasks across all users."""
+    stmt = (
+        select(Task, User.username)
+        .join(User, Task.user_id == User.id)
+        .order_by(Task.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+    return [
+        AdminTaskResponse(
+            **{c.name: getattr(task, c.name) for c in Task.__table__.columns},
+            username=username,
+        )
+        for task, username in rows
+    ]
+
+
+@router.get("/tasks/{task_id}", response_model=AdminTaskResponse)
+async def get_task(
+    task_id: int,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a single task by ID."""
+    stmt = select(Task, User.username).join(User, Task.user_id == User.id).where(Task.id == task_id)
+    result = await db.execute(stmt)
+    row = result.one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Task not found")
+    task, username = row
+    return AdminTaskResponse(
+        **{c.name: getattr(task, c.name) for c in Task.__table__.columns},
+        username=username,
+    )
+
+
+@router.post("/tasks", response_model=AdminTaskResponse, status_code=status.HTTP_201_CREATED)
+async def create_task(
+    body: TaskCreate,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a task for any user (admin only)."""
+    # Validate user exists if user_id provided
+    if body.user_id is not None:
+        user_check = await db.execute(select(User).where(User.id == body.user_id))
+        if not user_check.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="User not found")
+
+    task = Task(
+        user_id=body.user_id or admin.id,
+        repo_url=body.repo_url or "",
+        source_type=body.source_type or TaskSource.GITHUB,
+        source_path=body.source_path,
+        force=body.force or False,
+        language=body.language or "cpp",
+        status=TaskStatus.PENDING,
+    )
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    # Fetch username
+    user_result = await db.execute(select(User.username).where(User.id == task.user_id))
+    username = user_result.scalar_one_or("")
+
+    return AdminTaskResponse(
+        **{c.name: getattr(task, c.name) for c in Task.__table__.columns},
+        username=username,
+    )
+
+
+@router.put("/tasks/{task_id}", response_model=AdminTaskResponse)
+async def update_task(
+    task_id: int,
+    body: TaskUpdate,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a task's fields (admin only)."""
+    stmt = select(Task, User.username).join(User, Task.user_id == User.id).where(Task.id == task_id)
+    result = await db.execute(stmt)
+    row = result.one_or_none()
+    if not row:
+        raise HTTPException(status_code=404, detail="Task not found")
+    task, _username = row
+
+    update_data = body.model_dump(exclude_none=True)
+    for field, value in update_data.items():
+        setattr(task, field, value)
+
+    await db.commit()
+    await db.refresh(task)
+
+    user_result = await db.execute(select(User.username).where(User.id == task.user_id))
+    username = user_result.scalar_one_or("")
+
+    return AdminTaskResponse(
+        **{c.name: getattr(task, c.name) for c in Task.__table__.columns},
+        username=username,
+    )
+
+
+@router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task(
+    task_id: int,
+    admin: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a task by ID (admin only)."""
+    stmt = select(Task).where(Task.id == task_id)
+    result = await db.execute(stmt)
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    await db.delete(task)
     await db.commit()

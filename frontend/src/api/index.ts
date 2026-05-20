@@ -10,6 +10,7 @@ import type {
   UserCreate,
   UserLogin,
   Task,
+  TaskWithUser,
   TaskCreate,
   IssueSummary,
   IssueDetail,
@@ -141,4 +142,20 @@ export const adminApi = {
 
   deleteUser: (id: number) =>
     api.delete(`/api/admin/users/${id}`),
+
+  // ── Tasks ────────────────────────────────────────────────────────────
+  listTasks: () =>
+    api.get<TaskWithUser[]>('/api/admin/tasks').then((r) => r.data),
+
+  getTask: (id: number) =>
+    api.get<TaskWithUser>(`/api/admin/tasks/${id}`).then((r) => r.data),
+
+  createTask: (data: TaskCreate & { user_id?: number }) =>
+    api.post<TaskWithUser>('/api/admin/tasks', data).then((r) => r.data),
+
+  updateTask: (id: number, data: Partial<TaskCreate> & { status?: string; user_id?: number }) =>
+    api.put<TaskWithUser>(`/api/admin/tasks/${id}`, data).then((r) => r.data),
+
+  deleteTask: (id: number) =>
+    api.delete(`/api/admin/tasks/${id}`),
 };
