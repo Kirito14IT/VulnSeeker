@@ -123,3 +123,22 @@ export const systemApi = {
     return response.data;
   },
 };
+
+// ── Admin ────────────────────────────────────────────────────────────────────
+
+export const adminApi = {
+  listUsers: () =>
+    api.get<User[]>('/api/admin/users').then((r) => r.data),
+
+  getUser: (id: number) =>
+    api.get<User>(`/api/admin/users/${id}`).then((r) => r.data),
+
+  createUser: (data: { username: string; email: string; password: string; role?: string }) =>
+    api.post<User>('/api/admin/users', data).then((r) => r.data),
+
+  updateUser: (id: number, data: { username?: string; email?: string; password?: string; role?: string }) =>
+    api.put<User>(`/api/admin/users/${id}`, data).then((r) => r.data),
+
+  deleteUser: (id: number) =>
+    api.delete(`/api/admin/users/${id}`),
+};

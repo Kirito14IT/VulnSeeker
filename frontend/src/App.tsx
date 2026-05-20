@@ -17,9 +17,10 @@ import LegacySupportPage from './pages/LegacySupportPage';
 import SecureCodingEvalPage from './pages/SecureCodingEvalPage';
 import AdminPage from './pages/AdminPage';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuthStore();
+const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode; requiredRole?: string }) => {
+  const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (requiredRole && user?.role !== requiredRole) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -87,7 +88,7 @@ function App() {
             />
             <Route
               path="/admin"
-              element={<ProtectedRoute><AdminPage /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRole="admin"><AdminPage /></ProtectedRoute>}
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

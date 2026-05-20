@@ -39,6 +39,22 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 
+class UserUpdate(BaseModel):
+    """Admin-only schema for updating an existing user."""
+    username: Optional[str] = Field(default=None, min_length=3, max_length=64)
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(default=None, min_length=6, max_length=128)
+    role: Optional[str] = Field(default=None, pattern=r"^(user|admin)$")
+
+
+class UserCreateByAdmin(BaseModel):
+    """Admin-only schema for creating a user."""
+    username: str = Field(..., min_length=3, max_length=64)
+    email: EmailStr
+    password: str = Field(..., min_length=6, max_length=128)
+    role: str = Field(default="user", pattern=r"^(user|admin)$")
+
+
 # ── Tasks ─────────────────────────────────────────────────────────────────────
 
 class TaskCreate(BaseModel):
