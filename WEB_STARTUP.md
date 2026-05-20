@@ -42,7 +42,21 @@ JWT_SECRET_KEY=CHANGE_ME_USE_strong_random_key_here
 # Linux / macOS 示例：CODEQL_PATH=/opt/codeql/codeql
 CODEQL_PATH=/path/to/codeql
 GITHUB_TOKEN=ghp_your_github_token
+
+# ── LLM Provider ─────────────────────────────────────
+# OpenAI 官方接口：
+PROVIDER=openai
+MODEL=gpt-4o
 OPENAI_API_KEY=sk-...
+
+# OpenAI 兼容接口（如阿里云百炼、内网代理、中转站）：
+# PROVIDER=openai
+# MODEL=qwen-plus
+# OPENAI_API_KEY=your_compatible_api_key
+# OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+# 也兼容使用 OPENAI_API_BASE 或 OPENAI_COMPATIBLE_BASE_URL
+# 使用兼容接口时，系统会自动将 qwen-plus 这类模型路由为 openai/qwen-plus。
+
 # ... 其他 LLM provider 配置
 ```
 

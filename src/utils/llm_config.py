@@ -21,7 +21,8 @@ if ROOT_ENV_FILE.exists():
 ALLOWED_LLM_PROVIDERS = {
     "openai", "azure", "anthropic", "mistral", "codestral",
     "groq", "openrouter", "huggingface", "cohere", "bedrock",
-    "vertex_ai", "gemini", "ollama", "minimax"
+    "vertex_ai", "gemini", "ollama", "minimax", "openai-compatible",
+    "openai_compatible"
 }
 
 
@@ -58,6 +59,41 @@ def get_model_name(provider: Optional[str], model: Optional[str]) -> str:
     return model
 
 
+def is_openai_official_model(model: str) -> bool:
+    """
+    Return True for model names LiteLLM can already resolve as OpenAI models.
+    """
+    official_prefixes = (
+        "gpt-",
+        "o1",
+        "o3",
+        "o4",
+        "chatgpt-",
+        "text-",
+        "davinci",
+        "babbage",
+        "curie",
+        "ada",
+    )
+    return model.startswith(official_prefixes)
+
+
+def get_openai_model_name(model: Optional[str], endpoint: Optional[str]) -> str:
+    """
+    Format OpenAI and OpenAI-compatible model names for LiteLLM.
+
+    Custom OpenAI-compatible endpoints often use model names like "qwen-plus".
+    LiteLLM needs these explicitly routed through the OpenAI adapter as
+    "openai/qwen-plus"; official OpenAI models can remain unchanged.
+    """
+    model_name = model or "gpt-4o"
+    if model_name.startswith("openai/"):
+        return model_name
+    if endpoint and not is_openai_official_model(model_name):
+        return f"openai/{model_name}"
+    return model_name
+
+
 def load_llm_config() -> Dict[str, Any]:
     """
     Load LLM configuration from .env file or environment variables.
@@ -83,6 +119,8 @@ def load_llm_config() -> Dict[str, Any]:
     # Normalize aliases to canonical provider name
     if provider == "google":
         provider = "gemini"
+    elif provider in {"openai-compatible", "openai_compatible"}:
+        provider = "openai"
     
     # Validate provider is in allowed list
     if provider not in ALLOWED_LLM_PROVIDERS:
@@ -101,6 +139,11 @@ def load_llm_config() -> Dict[str, Any]:
     
     if provider == "openai":
         api_key = os.getenv("OPENAI_API_KEY")
+        endpoint = (
+            os.getenv("OPENAI_BASE_URL")
+            or os.getenv("OPENAI_API_BASE")
+            or os.getenv("OPENAI_COMPATIBLE_BASE_URL")
+        )
     
     elif provider == "azure":
         api_key = os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("AZURE_API_KEY")
@@ -197,7 +240,11 @@ def load_llm_config() -> Dict[str, Any]:
 
     config = {
         "provider": provider,
-        "model": get_model_name(provider, model),
+        "model": (
+            get_openai_model_name(model, endpoint)
+            if provider == "openai"
+            else get_model_name(provider, model)
+        ),
         "api_key": api_key,
         "temperature": temperature,
         "top_p": top_p,

@@ -364,6 +364,7 @@ class LLMAnalyzer:
                 # also set OPENAI_API_BASE so litellm routes correctly
                 if provider == "openai" and self.config.get("api_base"):
                     os.environ["OPENAI_API_BASE"] = self.config["api_base"]
+                    os.environ["OPENAI_BASE_URL"] = self.config["api_base"]
                 if provider == "minimax" and self.config.get("api_base"):
                     os.environ["MINIMAX_API_BASE"] = self.config["api_base"]
         

@@ -158,6 +158,9 @@ def validate_llm_config_dict(config: Dict[str, Any]) -> bool:
     if provider == "google":
         provider = "gemini"
         config["provider"] = provider  # Update config with normalized value
+    elif provider in {"openai-compatible", "openai_compatible"}:
+        provider = "openai"
+        config["provider"] = provider
     
     # Validate provider is in allowed list
     if provider not in ALLOWED_LLM_PROVIDERS:
