@@ -85,7 +85,7 @@ function App() {
             />
             <Route
               path="/legacy/stats"
-              element={<ProtectedRoute><LegacySupportPage /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRole="admin"><LegacySupportPage /></ProtectedRoute>}
             />
             <Route
               path="/research/secure-coding-eval"

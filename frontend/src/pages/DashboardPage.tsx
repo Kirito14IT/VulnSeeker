@@ -189,19 +189,6 @@ export default function DashboardPage() {
             </Space>
           </Card>
         </Col>
-        <Col xs={24} md={8}>
-          <Card
-            hoverable
-            onClick={() => navigate('/legacy/stats')}
-            style={{ borderRadius: 24, minHeight: 150 }}
-          >
-            <Space direction="vertical" size={8}>
-              <Tag color="cyan">CLI Helpers</Tag>
-              <Title level={4} style={{ margin: 0 }}>Stats & Validation</Title>
-              <Text type="secondary">Use the web equivalents of `vulnseeker-validate`.</Text>
-            </Space>
-          </Card>
-        </Col>
       </Row>
 
       <Card

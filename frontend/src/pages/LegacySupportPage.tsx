@@ -74,7 +74,7 @@ export default function LegacySupportPage() {
       >
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/admin')}>
               Back
             </Button>
             <Space>
