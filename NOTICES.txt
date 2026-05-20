@@ -15,10 +15,7 @@ VulnSeeker is using the following open source components:
         Copyright (c) 2017-2021 Ingy döt Net
               Copyright (c) 2006-2016 Kirill Simonov
 
-5) textual (https://github.com/Textualize/textual/blob/main/LICENSE) : MIT License
-        Copyright (c) 2021 Will McGugan
-
-6) pySmartDL (http://pypi.python.org/pypi/pySmartDL/) : Public Domain
+5) pySmartDL (http://pypi.python.org/pypi/pySmartDL/) : Public Domain
 
 =====================================================================
 1)

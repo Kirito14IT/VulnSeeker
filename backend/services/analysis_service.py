@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.models import Task, TaskStatus, IssueDecision, TaskSource
 from core.config import get_settings
+from services.task_workspace import clear_task_artifacts
 
 
 # Ensure VulnSeeker src/ is on the Python path
@@ -54,6 +55,7 @@ class AnalysisService:
         self.db.add(task)
         await self.db.commit()
         await self.db.refresh(task)
+        clear_task_artifacts(task.id)
         return task
 
     async def get_task(self, task_id: int, user_id: int) -> Optional[Task]:
@@ -72,6 +74,7 @@ class AnalysisService:
             return False
         await self.db.delete(task)
         await self.db.commit()
+        clear_task_artifacts(task_id)
         return True
 
     async def update_task_status(

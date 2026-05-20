@@ -8,7 +8,7 @@ This module contains pure data parsing logic, separated from UI concerns.
 import re
 from typing import List, Optional, Tuple
 
-from src.ui.models import Issue
+from src.utils.models import Issue
 
 
 # Regex patterns for parsing
@@ -223,4 +223,3 @@ def extract_last_message(final_data: Optional[List]) -> Optional[str]:
                 return content.strip()
     
     return None
-

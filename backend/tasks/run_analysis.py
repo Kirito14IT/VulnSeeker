@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
+import subprocess
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -18,13 +21,13 @@ from core.config import get_settings
 from models.models import TaskStatus
 from services.task_workspace import (
     get_task_logs_path,
-    get_task_result_path,
     get_task_results_root,
     prepare_task_workspace,
 )
 
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 # Global sio reference (set in main.py)
 _sio: Any = None
@@ -79,11 +82,90 @@ async def _stream_output(task_id: int, stream: asyncio.StreamReader | None, msg_
             await _append_log(task_id, msg_type, content)
 
 
-def _count_final_results(task_id: int, language: str) -> int:
-    results_dir = get_task_result_path(task_id, language)
-    if not results_dir.exists():
+def _run_worker_blocking(cmd: list[str], cwd: str, env: dict[str, str]) -> tuple[int, list[str], list[str]]:
+    process = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    stdout, stderr = process.communicate()
+    return process.returncode, stdout.splitlines(), stderr.splitlines()
+
+
+async def _run_worker_async_streaming(
+    task_id: int,
+    cmd: list[str],
+    cwd: str,
+    env: dict[str, str],
+) -> int:
+    process = await asyncio.create_subprocess_exec(
+        *cmd,
+        cwd=cwd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env=env,
+    )
+    await asyncio.gather(
+        _stream_output(task_id, process.stdout, "log"),
+        _stream_output(task_id, process.stderr, "error"),
+    )
+    return await process.wait()
+
+
+async def _run_worker_cross_platform(
+    task_id: int,
+    cmd: list[str],
+    cwd: str,
+    env: dict[str, str],
+) -> int:
+    if os.name == "nt":
+        return_code, stdout_lines, stderr_lines = await asyncio.to_thread(
+            _run_worker_blocking,
+            cmd,
+            cwd,
+            env,
+        )
+        for line in stdout_lines:
+            content = line.rstrip()
+            if content:
+                await _append_log(task_id, "log", content)
+        for line in stderr_lines:
+            content = line.rstrip()
+            if content:
+                await _append_log(task_id, "error", content)
+        return return_code
+
+    try:
+        return await _run_worker_async_streaming(task_id, cmd, cwd, env)
+    except NotImplementedError:
+        logger.warning("Async subprocess unsupported; falling back to blocking worker runner")
+        return_code, stdout_lines, stderr_lines = await asyncio.to_thread(
+            _run_worker_blocking,
+            cmd,
+            cwd,
+            env,
+        )
+        for line in stdout_lines:
+            content = line.rstrip()
+            if content:
+                await _append_log(task_id, "log", content)
+        for line in stderr_lines:
+            content = line.rstrip()
+            if content:
+                await _append_log(task_id, "error", content)
+        return return_code
+
+
+def _count_final_results(task_id: int) -> int:
+    results_root = get_task_results_root(task_id)
+    if not results_root.exists():
         return 0
-    return sum(1 for _ in results_dir.rglob("*_final.json"))
+    return sum(1 for _ in results_root.rglob("*_final.json"))
 
 
 def _count_raw_results(task_id: int) -> int:
@@ -113,11 +195,24 @@ async def run_analysis(
         await _append_log(task_id, "status", f"Task started in isolated workspace: {workspace}")
         await _append_log(task_id, "log", f"Worker interpreter: {analysis_python}")
 
+        # Resolve enum to string if needed
+        if hasattr(source_type, "value"):
+            mode_value = source_type.value
+        else:
+            mode_value = str(source_type)
+
+        # Fix if it got serialized as 'TaskSource.GITHUB' string
+        if isinstance(mode_value, str):
+            if mode_value.startswith("TaskSource."):
+                mode_value = mode_value.split(".", 1)[1].lower()
+            elif mode_value.isupper():
+                mode_value = mode_value.lower()
+
         cmd = [
             analysis_python,
             str(worker_script),
             "--mode",
-            source_type,
+            mode_value,
             "--language",
             language,
             "--workspace",
@@ -125,7 +220,7 @@ async def run_analysis(
         ]
         if force:
             cmd.append("--force")
-        if source_type == "github":
+        if mode_value == "github":
             cmd.extend(["--repo-url", repo_url])
         elif source_path:
             cmd.extend(["--source-path", source_path])
@@ -137,22 +232,13 @@ async def run_analysis(
             if existing_pythonpath
             else str(settings.VULNSEEKER_ROOT)
         )
-
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            cwd=str(workspace),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=env,
-        )
+        env.setdefault("PYTHONUNBUFFERED", "1")
+        if os.name == "nt":
+            env.setdefault("PYTHONUTF8", "1")
+            env.setdefault("PYTHONIOENCODING", "utf-8")
 
         await _append_log(task_id, "log", "Launching legacy analysis engine")
-
-        await asyncio.gather(
-            _stream_output(task_id, process.stdout, "log"),
-            _stream_output(task_id, process.stderr, "error"),
-        )
-        return_code = await process.wait()
+        return_code = await _run_worker_cross_platform(task_id, cmd, str(workspace), env)
 
         if return_code != 0:
             message = f"Analysis worker exited with code {return_code}"
@@ -160,8 +246,8 @@ async def run_analysis(
             await _append_log(task_id, "error", message)
             return
 
-        result_path = str(get_task_result_path(task_id, language))
-        final_count = _count_final_results(task_id, language)
+        result_path = str(get_task_results_root(task_id))
+        final_count = _count_final_results(task_id)
         if final_count == 0:
             raw_count = _count_raw_results(task_id)
             if raw_count == 0:
@@ -196,5 +282,12 @@ async def run_analysis(
         )
         await _append_log(task_id, "done", f"Analysis complete with {final_count} finalized issue(s)")
     except Exception as exc:
-        await update_task_status(task_id, TaskStatus.FAILED, error_message=str(exc))
-        await _append_log(task_id, "error", f"Unexpected error: {exc}")
+        # Keep DB error_message concise while streaming full traceback to logs.
+        summary = f"{exc.__class__.__name__}: {exc}" if str(exc) else exc.__class__.__name__
+        await update_task_status(task_id, TaskStatus.FAILED, error_message=summary)
+        await _append_log(task_id, "error", f"Unexpected error: {summary}")
+
+        tb = traceback.format_exc().rstrip()
+        logger.exception("Task %s failed with unexpected exception", task_id)
+        for line in tb.splitlines():
+            await _append_log(task_id, "error", line)

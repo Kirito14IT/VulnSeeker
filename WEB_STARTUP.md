@@ -4,6 +4,7 @@
 
 - **Node.js** >= 18
 - **Python** >= 3.10, < 3.14
+- **Conda** 用于后端 Python 环境管理
 - **MySQL** 运行在 `localhost:3306`
 - **CodeQL CLI** 已安装并配置（参考 [VulnSeeker README](README.md)）
 
@@ -44,11 +45,12 @@ OPENAI_API_KEY=sk-...
 
 ---
 
-## 3. 安装后端依赖
+## 3. 准备 Conda 后端环境
 
 ```bash
-cd backend
-pip install -r requirements.txt
+conda create -n vulnseeker python=3.10
+conda activate vulnseeker
+pip install -r backend/requirements.txt
 ```
 
 ---
@@ -56,6 +58,7 @@ pip install -r requirements.txt
 ## 4. 启动后端
 
 ```bash
+conda activate vulnseeker
 cd backend
 uvicorn main:application --host 0.0.0.0 --port 8000 --reload
 ```
@@ -90,7 +93,7 @@ npm run dev
 
 1. 打开 http://localhost:5173
 2. 点击 **Register** 注册账号
-3. 登录后点击 **New Task** 创建分析任务（输入 GitHub 仓库如 `redis/redis`，选择语言 `c`）
+3. 登录后点击 **New Task** 创建分析任务（输入 GitHub 仓库如 `redis/redis`，选择语言 `cpp`）
 4. 点击 **Run** 启动分析，实时日志会在页面显示
 5. 分析完成后，切换到 **Results** 视图浏览 Issues 列表
 6. 点击任意 Issue 查看详情，设置 Manual Decision

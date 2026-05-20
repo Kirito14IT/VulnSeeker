@@ -114,6 +114,12 @@ export const legacyApi = {
 };
 
 export const systemApi = {
-  validate: () =>
-    api.get<ConfigValidationResponse>('/api/system/validate').then((r) => r.data),
+  validate: async (): Promise<ConfigValidationResponse> => {
+    const response = await api.get('/api/system/validate');
+    return response.data;
+  },
+  fetchQLDeps: async (): Promise<{ status: string }> => {
+    const response = await api.post('/api/system/fetch-ql-deps');
+    return response.data;
+  },
 };

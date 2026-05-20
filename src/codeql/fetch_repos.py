@@ -29,6 +29,15 @@ logger = get_logger(__name__)
 LANG: str = "c"
 
 
+def _supports_unicode_progress() -> bool:
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        "█░".encode(encoding)
+        return True
+    except UnicodeEncodeError:
+        return False
+
+
 def fetch_repos_from_github_api(url: str) -> Dict[str, Any]:
     """
     Make a GET request to GitHub's API with optional rate-limit handling.
@@ -259,7 +268,10 @@ def custom_download(url: str, local_filename: str, max_attempts: int = 5, attemp
 
                         bar_length = 20
                         filled = int(bar_length * progress / 100)
-                        bar = "█" * filled + "░" * (bar_length - filled)
+                        if _supports_unicode_progress():
+                            bar = "█" * filled + "░" * (bar_length - filled)
+                        else:
+                            bar = "#" * filled + "-" * (bar_length - filled)
 
                         print(
                             f"\rDownloading: [{bar}] {progress:.1f}% | "
@@ -396,7 +408,7 @@ def filter_repos_by_db_and_lang(repos: List[Dict[str, Any]], lang: str) -> List[
     """
     repos_db = []
     # If language is 'c', the GH DB often has it as 'cpp'
-    gh_lang = "cpp" if lang == "c" else lang
+    gh_lang_list = ["cpp" if l.strip() == "c" else l.strip() for l in lang.split(",")]
 
     for repo in repos:
         try:
@@ -427,7 +439,7 @@ def filter_repos_by_db_and_lang(repos: List[Dict[str, Any]], lang: str) -> List[
             continue
             
         for db in db_info:
-            if "language" in db and db["language"] == gh_lang:
+            if "language" in db and db["language"] in gh_lang_list:
                 # Validate required fields exist
                 if "url" not in db:
                     logger.warning("Database entry missing 'url' field for %s, skipping", repo['repo_name'])
@@ -563,7 +575,7 @@ def download_db_by_name(repo_name: str, lang: str, threads: int) -> str:
     repo_db = filter_repos_by_db_and_lang([repo], lang)
     if not repo_db:
         logger.warning("No %s DB found for %s", lang, repo_name)
-        return []
+        return ""
     return download_and_extract_db(repo_db[0], threads, str(Path("output/databases") / lang))
 
 
@@ -590,6 +602,19 @@ def fetch_codeql_dbs(
         CodeQLError: If directory creation, download, or extraction fails.
         CodeQLConfigError: On 4xx client errors (invalid token, permissions, etc.).
     """
+    # Handle full URL formats like https://github.com/org/repo
+    if repo_name and "github.com/" in repo_name:
+        repo_name = repo_name.split("github.com/")[-1].strip("/")
+        if repo_name.endswith(".git"):
+            repo_name = repo_name[:-4]
+            
+    parts = repo_name.split("/")
+    if len(parts) >= 2:
+        just_repo_name = parts[-1]
+        repo_name = f"{parts[-2]}/{parts[-1]}"
+    else:
+        just_repo_name = repo_name
+
     # Ensure needed directories exist
     db_folder_path = Path("output/databases") / lang
     try:
@@ -608,7 +633,6 @@ def fetch_codeql_dbs(
         raise CodeQLError(f"OS error creating ZIP directory: {zip_folder_path}") from e
     
     # Check if database already exists
-    _, just_repo_name = repo_name.split("/")
     target_path = db_folder_path / just_repo_name
     if target_path.exists() and not force:
         logger.info("Database already exists at %s, skipping download (use --force to re-download)", target_path)
@@ -727,12 +751,15 @@ def build_local_codeql_db(
     except OSError as e:
         raise CodeQLError(f"OS error creating database directory: {db_folder}") from e
 
-    # Map 'c' to 'cpp' for CodeQL language argument
-    codeql_lang = "cpp" if lang == "c" else lang
+    # Split by comma if multiple languages are provided
+    lang_list = [l.strip() for l in lang.split(",")]
+    codeql_langs = ["cpp" if l == "c" else l for l in lang_list]
+    codeql_lang_arg = ",".join(codeql_langs)
+
     build_command = infer_build_command(source)
 
     logger.info("Building CodeQL database for: %s", source_path)
-    logger.info("Language: %s | Output: %s | Threads: %d", codeql_lang, db_output, threads)
+    logger.info("Language: %s | Output: %s | Threads: %d", codeql_lang_arg, db_output, threads)
     if build_command:
         logger.info("Using explicit build command for local source: %s", build_command)
     else:
@@ -745,7 +772,7 @@ def build_local_codeql_db(
             "create",
             str(db_output),
             "--source-root", str(source),
-            "--language", codeql_lang,
+            "--language", codeql_lang_arg,
             f"--threads={threads}",
         ]
         if build_command:

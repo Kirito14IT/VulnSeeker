@@ -5,15 +5,14 @@ Reads from environment variables (.env file).
 
 from pathlib import Path
 from functools import cached_property, lru_cache
-import shutil
-import subprocess
 import sys
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Look for .env in the project root first, then fallback to current directory
+        env_file=(str(Path(__file__).resolve().parents[2] / ".env")),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -26,7 +25,7 @@ class Settings(BaseSettings):
     MYSQL_DATABASE: str = "vulnseeker"
 
     # ── JWT Authentication ────────────────────────────────────────────
-    JWT_SECRET_KEY: str = "CHANGE_ME_IN_PRODUCTION_USE_STRONG_RANDOM_KEY"
+    JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
@@ -83,22 +82,6 @@ class Settings(BaseSettings):
     def ANALYSIS_PYTHON_EXECUTABLE(self) -> str:
         if self.ANALYSIS_PYTHON:
             return self.ANALYSIS_PYTHON
-
-        poetry = shutil.which("poetry")
-        if poetry:
-            try:
-                result = subprocess.run(
-                    [poetry, "env", "info", "--executable"],
-                    cwd=str(self.VULNSEEKER_ROOT),
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-                poetry_python = result.stdout.strip()
-                if poetry_python:
-                    return poetry_python
-            except Exception:
-                pass
 
         return sys.executable
 

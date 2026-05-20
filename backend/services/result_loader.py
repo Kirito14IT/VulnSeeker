@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import Optional
 
 from api.schemas import CodeSnippet, IssueDetail, IssueSummary, RepoStat
-from src.ui.issue_parser import collect_all_code_snippets, extract_code_blocks_from_text, extract_last_message
-from src.ui.models import Issue
-from src.ui.results_loader import ResultsLoader
+from src.utils.issue_parser import collect_all_code_snippets, extract_code_blocks_from_text, extract_last_message
+from src.utils.models import Issue
+from src.utils.results_loader import ResultsLoader
 
 
 def _issue_to_summary(issue: Issue, manual_decision: Optional[str]) -> IssueSummary:
@@ -55,8 +55,11 @@ def _issue_to_detail(issue: Issue, manual_decision: Optional[str]) -> IssueDetai
 
 def load_task_issues(results_root: Path, language: str) -> list[Issue]:
     loader = ResultsLoader(str(results_root))
-    issues, _ = loader.load_all_issues(language, include_raw_only=True)
-    return issues
+    all_issues = []
+    for lang in [l.strip() for l in language.split(",")]:
+        issues, _ = loader.load_all_issues(lang, include_raw_only=True)
+        all_issues.extend(issues)
+    return all_issues
 
 
 def find_task_issue(results_root: Path, language: str, issue_id: str) -> Optional[Issue]:
@@ -67,33 +70,56 @@ def find_task_issue(results_root: Path, language: str, issue_id: str) -> Optiona
     return None
 
 
-def load_global_issues(results_root: Path, language: str = "c") -> list[Issue]:
+def load_global_issues(results_root: Path, language: str = "cpp") -> list[Issue]:
+    """
+    Load issues from the legacy global results folder using ResultsLoader.
+    """
+    if not results_root.exists():
+        return []
+
     loader = ResultsLoader(str(results_root))
-    issues, _ = loader.load_all_issues(language)
+    all_issues = []
+    for lang in [l.strip() for l in language.split(",")]:
+        issues, _ = loader.load_all_issues(lang)
+        all_issues.extend(issues)
+
     saved_decisions = loader.load_manual_decisions()
-    for issue in issues:
+    for issue in all_issues:
         issue.manual_decision = saved_decisions.get(issue.final_path)
-    return issues
+    return all_issues
 
 
 def build_repo_stats(issues: list[Issue]) -> list[RepoStat]:
-    grouped: dict[str, dict[str, int]] = {}
-    for issue in issues:
-        bucket = grouped.setdefault(issue.repo, {"true": 0, "false": 0, "more": 0})
-        bucket[issue.status] = bucket.get(issue.status, 0) + 1
+    from collections import defaultdict
 
-    stats = []
-    for repo, counts in sorted(grouped.items()):
-        stats.append(
-            RepoStat(
-                repo=repo,
-                total=counts["true"] + counts["false"] + counts["more"],
-                true_count=counts["true"],
-                false_count=counts["false"],
-                more_count=counts["more"],
-            )
+    stats: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"total": 0, "true_count": 0, "false_count": 0, "more_count": 0}
+    )
+
+    for issue in issues:
+        repo = issue.repo
+        status = (issue.manual_decision or issue.status).strip()
+        stats[repo]["total"] += 1
+
+        if status == "True Positive":
+            stats[repo]["true_count"] += 1
+        elif status == "False Positive":
+            stats[repo]["false_count"] += 1
+        elif status == "Uncertain":
+            stats[repo]["more_count"] += 1
+        else:
+            stats[repo]["more_count"] += 1
+
+    return [
+        RepoStat(
+            repo=r,
+            total=s["total"],
+            true_count=s["true_count"],
+            false_count=s["false_count"],
+            more_count=s["more_count"],
         )
-    return stats
+        for r, s in stats.items()
+    ]
 
 
 __all__ = [

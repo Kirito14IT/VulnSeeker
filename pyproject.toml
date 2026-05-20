@@ -1,52 +1,12 @@
-[tool.poetry]
-name = "vulnseeker"
-version = "0.1.0"
-description = "Automated CodeQL Analysis with LLM Classification"
-readme = "README.md"
-license = "Apache-2.0"
-authors = ["CyberArk Software Ltd. <info@cyberark.com>"]
-repository = "https://github.com/Kirito14IT/VulnSeeker"
-
-[tool.poetry.dependencies]
-python = ">=3.10,<3.14"
-# Python version constraint: >=3.10,<3.14
-# - Minimum 3.10
-# - Maximum <3.14: Not supported due to grpcio wheels unavailable
-
-requests = "^2.31.0"
-python-dotenv = "^1.0.0"
-litellm = "^1.0.0"
-PyYAML = "^6.0"
-textual = "^0.40.0"
-pySmartDL = "^1.3.4"
-boto3 = "^1.34.0"
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-mypy = "^1.11.0"
-types-requests = "^2.31.0"
-types-PyYAML = "^6.0"
-
-[tool.poetry.scripts]
-vulnseeker-setup = "src.vulnseeker_setup:main"
-vulnseeker = "src.pipeline:main_analyze"
-vulnseeker-ui = "src.pipeline:main_ui"
-vulnseeker-validate = "src.pipeline:main_validate"
-vulnseeker-list = "src.pipeline:main_list"
-vulnseeker-example = "src.pipeline:main_example"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
 [tool.mypy]
-# Mypy configuration - conservative baseline for gradual adoption
+# Mypy configuration - conservative baseline for gradual adoption.
 python_version = "3.10"
 
-# Handle namespace packages correctly (src/ is not a proper package)
+# Handle namespace packages correctly (src/ is not a proper package).
 namespace_packages = true
 explicit_package_bases = true
 
-# Allow imports from third-party libraries without stubs
+# Allow imports from third-party libraries without stubs.
 ignore_missing_imports = true
 
 # Useful warnings that catch common issues.
@@ -54,7 +14,7 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 no_implicit_optional = true
 
-# Exclude non-source directories from type checking
+# Exclude non-source directories from type checking.
 exclude = [
     "^tests/",
     "^output/",
@@ -65,22 +25,12 @@ exclude = [
     "^dist/",
 ]
 
-# Per-module overrides for gradual adoption
-# UI modules use Textual framework with complex typing; relax checks
-[[tool.mypy.overrides]]
-module = [
-    "src.ui.*",
-    "src.ui.components.*",
-]
-# Textual widgets have dynamic attributes and require gradual typing
-disable_error_code = ["attr-defined", "misc", "arg-type", "var-annotated", "assignment"]
-
-# LLM module works with dynamic dict structures from API responses
+# LLM module works with dynamic dict structures from API responses.
 [[tool.mypy.overrides]]
 module = "src.llm.*"
 disable_error_code = ["attr-defined"]
 
-# Main modules have some legacy typing issues to fix later
+# Main modules have some legacy typing issues to fix later.
 [[tool.mypy.overrides]]
 module = [
     "src.vulnseeker",
@@ -88,15 +38,14 @@ module = [
 ]
 disable_error_code = ["arg-type", "call-arg", "operator"]
 
-# Utils and setup modules with some Optional handling to fix later
+# Utils modules with some Optional handling to fix later.
 [[tool.mypy.overrides]]
 module = [
     "src.utils.logger",
-    "src.vulnseeker_setup",
 ]
 disable_error_code = ["union-attr"]
 
-# CodeQL modules have some type annotation and return type issues
+# CodeQL modules have some type annotation and return type issues.
 [[tool.mypy.overrides]]
 module = "src.codeql.*"
 disable_error_code = ["var-annotated", "return-value", "union-attr", "arg-type", "assignment"]

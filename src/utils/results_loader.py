@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.ui.models import Issue
+from src.utils.models import Issue
 from src.utils.logger import get_logger
 from src.utils.exceptions import VulnSeekerError
 
@@ -432,4 +432,3 @@ class ResultsLoader:
                     issues.append(issue)
         
         return issues, errors
-

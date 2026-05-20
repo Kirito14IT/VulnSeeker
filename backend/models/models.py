@@ -57,11 +57,15 @@ class Task(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     repo_url: Mapped[str] = mapped_column(String(512), nullable=False)
-    source_type: Mapped[str] = mapped_column(String(32), default=TaskSource.GITHUB.value, nullable=False)
+    source_type: Mapped[TaskSource] = mapped_column(
+        Enum(TaskSource, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=TaskSource.GITHUB
+    )
     source_path: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
-    force: Mapped[bool] = mapped_column("force_run", Boolean, default=False, nullable=False)
-    language: Mapped[str] = mapped_column(String(16), nullable=False, default="c")
-    status: Mapped[str] = mapped_column(String(32), default=TaskStatus.PENDING.value, nullable=False)
+    force: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    language: Mapped[str] = mapped_column(String(256), nullable=False, default="cpp")
+    status: Mapped[TaskStatus] = mapped_column(
+        Enum(TaskStatus, values_callable=lambda obj: [e.value for e in obj]), default=TaskStatus.PENDING
+    )
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     result_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

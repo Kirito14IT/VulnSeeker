@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Data models for VulnSeeker UI.
+Data models for VulnSeeker.
 """
 
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -120,4 +120,3 @@ def get_sort_key_for_column(column: str) -> Optional[Callable[["Issue"], Any]]:
         "Manual decision": lambda issue: MANUAL_DECISION_ORDER.get(issue.manual_decision, 3),
     }
     return sort_keys.get(column)
-

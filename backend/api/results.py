@@ -37,7 +37,10 @@ async def get_task_logs(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_owned_task(task_id, current_user.id, db)
+    task = await _get_owned_task(task_id, current_user.id, db)
+    if task.status == TaskStatus.PENDING and not task.result_path and not task.error_message:
+        return TaskLogResponse(lines=[])
+
     log_path = get_task_logs_path(task_id)
     if not log_path.exists():
         return TaskLogResponse(lines=[])
@@ -71,7 +74,7 @@ async def list_issues(
     for record in dec_result.scalars():
         decisions[record.issue_id] = record.decision
 
-    results_root = Path(task.result_path).parent
+    results_root = Path(task.result_path)
     issues = load_task_issues(results_root, task.language)
     return [_issue_to_summary(issue, decisions.get(issue.id)) for issue in issues]
 
@@ -87,7 +90,7 @@ async def get_issue_detail(
     if not task.result_path:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No results found")
 
-    results_root = Path(task.result_path).parent
+    results_root = Path(task.result_path)
     issue = find_task_issue(results_root, task.language, issue_id)
     if not issue:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found")

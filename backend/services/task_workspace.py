@@ -33,6 +33,20 @@ def get_task_logs_path(task_id: int) -> Path:
     return get_task_root(task_id) / "task.log"
 
 
+def clear_task_artifacts(task_id: int) -> None:
+    """
+    Remove stale on-disk artifacts for a web task id.
+
+    MySQL auto-increment ids can be reused after a development database reset,
+    while output/web_tasks/task_<id>/ may still contain logs from the old task.
+    Clearing the task root when a fresh DB task is created prevents those old
+    logs/results from appearing before the new task has actually run.
+    """
+    task_root = get_task_root(task_id)
+    if task_root.exists():
+        shutil.rmtree(task_root, ignore_errors=True)
+
+
 def _safe_link_or_copy(src: Path, dst: Path, *, directory: bool = False) -> None:
     if dst.exists() or dst.is_symlink():
         return

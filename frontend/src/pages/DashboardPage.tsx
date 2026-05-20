@@ -184,7 +184,7 @@ export default function DashboardPage() {
             <Space direction="vertical" size={8}>
               <Tag color="geekblue">Legacy UI</Tag>
               <Title level={4} style={{ margin: 0 }}>Global Results Browser</Title>
-              <Text type="secondary">Browse the shared root `output/results` view just like the old CLI UI.</Text>
+              <Text type="secondary">Browse the shared root `output/results` view.</Text>
             </Space>
           </Card>
         </Col>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
             <Space direction="vertical" size={8}>
               <Tag color="cyan">CLI Helpers</Tag>
               <Title level={4} style={{ margin: 0 }}>Stats & Validation</Title>
-              <Text type="secondary">Use the web equivalents of `vulnseeker-list` and `vulnseeker-validate`.</Text>
+              <Text type="secondary">Use the web equivalents of `vulnseeker-validate`.</Text>
             </Space>
           </Card>
         </Col>

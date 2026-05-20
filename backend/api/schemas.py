@@ -43,7 +43,7 @@ class TaskCreate(BaseModel):
     source_type: TaskSource = Field(default=TaskSource.GITHUB, description="Task source mode")
     repo_url: Optional[str] = Field(default=None, max_length=512, description="GitHub repo in org/repo format")
     source_path: Optional[str] = Field(default=None, max_length=1024, description="Server-local path for local_db/local_src")
-    language: str = Field(default="c", max_length=16, description="Programming language code")
+    language: str = Field(default="cpp", max_length=256, description="Programming language code")
     force: bool = Field(default=False, description="Force re-download or re-build when supported")
 
 

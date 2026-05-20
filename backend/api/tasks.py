@@ -2,6 +2,7 @@
 FastAPI router for task CRUD operations.
 """
 
+import re
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +17,36 @@ from api.schemas import TaskCreate, TaskResponse
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
+def parse_github_repo(url: str) -> str:
+    """
+    Parses a GitHub repository string into 'org/repo' format.
+    Supports both 'org/repo' and full 'https://github.com/org/repo' formats.
+    """
+    if not url:
+        return ""
+        
+    url = url.strip()
+    
+    # Remove .git suffix
+    if url.endswith('.git'):
+        url = url[:-4]
+        
+    # Remove trailing slashes
+    url = url.rstrip('/')
+    
+    # Check for github.com URLs
+    match = re.search(r'(?:https?://)?(?:www\.)?github\.com/([^/]+)/([^/]+)', url)
+    if match:
+        return f"{match.group(1)}/{match.group(2)}"
+    
+    # Check for org/repo format
+    parts = url.split('/')
+    if len(parts) == 2 and not url.startswith('http'):
+        return url
+        
+    return ""
+
+
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
     body: TaskCreate,
@@ -25,19 +56,13 @@ async def create_task(
     service = AnalysisService(db)
     source_type = body.source_type
 
-    if body.language != "c":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The current query pack only supports language 'c' in the web app",
-        )
-
     if source_type == TaskSource.GITHUB:
-        if not body.repo_url or "/" not in body.repo_url:
+        repo_url = parse_github_repo(body.repo_url or "")
+        if not repo_url:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="GitHub mode requires repo_url in 'org/repo' format",
+                detail="GitHub mode requires repo_url in 'org/repo' or 'https://github.com/org/repo' format",
             )
-        repo_url = body.repo_url
         source_path = None
     else:
         if not body.source_path:
