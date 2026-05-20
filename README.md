@@ -2,7 +2,7 @@
 
 VulnSeeker 是一个代码安全性审查平台，核心流程是先使用 CodeQL 做静态分析，再通过 LLM 进行二次复核、分类和辅助研判。
 
-本项目基于原型 Vulnhalla [https://github.com/cyberark/Vulnhalla]进行二次开发。当前系统舍弃了原型中的 CLI/TUI 式交互，改为前后端分离的 Web 控制台，更适合任务管理、实时日志查看、结果复核和人工判定。
+本项目基于原型：[Vulnhalla](https://github.com/cyberark/Vulnhalla) 进行二次开发。当前系统舍弃了原型中的 CLI/TUI 式交互，改为前后端分离的 Web 控制台，更适合任务管理、实时日志查看、结果复核和人工判定。
 
 ## 项目定位
 

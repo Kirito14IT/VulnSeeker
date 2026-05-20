@@ -6,7 +6,7 @@
 - **Python** >= 3.10, < 3.14
 - **Conda** 用于后端 Python 环境管理
 - **MySQL** 运行在 `localhost:3306`
-- **CodeQL CLI** 已安装并配置（参考 [VulnSeeker README](README.md)）
+- **CodeQL CLI** 已安装，并在下方 `.env` 中配置 `CODEQL_PATH`
 
 ---
 
@@ -37,6 +37,9 @@ JWT_SECRET_KEY=CHANGE_ME_USE_strong_random_key_here
 
 # ── VulnSeeker 原有的配置 ──────────────────────────────
 # （从 .env.example 或 VulnSeeker README 复制过来）
+# CODEQL_PATH 指向 CodeQL CLI 可执行文件。
+# Windows 示例：CODEQL_PATH=D:\Tools\codeql\codeql.exe
+# Linux / macOS 示例：CODEQL_PATH=/opt/codeql/codeql
 CODEQL_PATH=/path/to/codeql
 GITHUB_TOKEN=ghp_your_github_token
 OPENAI_API_KEY=sk-...
