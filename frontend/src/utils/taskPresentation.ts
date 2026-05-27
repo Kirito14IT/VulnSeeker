@@ -6,6 +6,7 @@ const PARTIAL_LLM_FAILURE_PATTERN = /Analysis finished without finalized LLM res
 export type TaskPresentation = {
   color: string;
   statusLabel: string;
+  statusLabelKey: string;
   isPartialLlmFailure: boolean;
   rawCount: number;
   finalCount: number;
@@ -18,6 +19,7 @@ export function getTaskPresentation(task: Task): TaskPresentation {
     return {
       color: 'gold',
       statusLabel: 'PARTIAL',
+      statusLabelKey: 'partial',
       isPartialLlmFailure: true,
       rawCount: Number(match[1]),
       finalCount: Number(match[2]),
@@ -34,6 +36,7 @@ export function getTaskPresentation(task: Task): TaskPresentation {
   return {
     color: colorByStatus[task.status],
     statusLabel: task.status.toUpperCase(),
+    statusLabelKey: task.status,
     isPartialLlmFailure: false,
     rawCount: 0,
     finalCount: 0,

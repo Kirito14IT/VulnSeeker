@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Card, Col, Row, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
 
 import { legacyApi, systemApi } from '../api';
@@ -13,6 +14,7 @@ const { Title, Paragraph, Text } = Typography;
 
 export default function LegacySupportPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [stats, setStats] = useState<RepoStat[]>([]);
   const [validation, setValidation] = useState<ConfigValidationResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,7 +30,7 @@ export default function LegacySupportPage() {
       setStats(statsResponse);
       setValidation(validationResponse);
     } catch {
-      message.error('Failed to load legacy helper data');
+      message.error(t('legacySupport.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -42,9 +44,9 @@ export default function LegacySupportPage() {
     setFetchingDeps(true);
     try {
       await systemApi.fetchQLDeps();
-      message.success('CodeQL dependencies fetched successfully.');
+      message.success(t('legacySupport.depsFetched'));
     } catch {
-      message.error('Failed to fetch CodeQL dependencies');
+      message.error(t('legacySupport.depsFetchFailed'));
     } finally {
       setFetchingDeps(false);
     }
@@ -52,14 +54,14 @@ export default function LegacySupportPage() {
 
   const columns: ColumnsType<RepoStat> = [
     {
-      title: 'Repository',
+      title: t('legacySupport.repoColumn'),
       dataIndex: 'repo',
       render: (value: string) => <Text code>{value}</Text>,
     },
-    { title: 'Total', dataIndex: 'total', width: 100 },
-    { title: 'True', dataIndex: 'true_count', width: 100 },
-    { title: 'False', dataIndex: 'false_count', width: 100 },
-    { title: 'Needs More Data', dataIndex: 'more_count', width: 160 },
+    { title: t('legacySupport.totalColumn'), dataIndex: 'total', width: 100 },
+    { title: t('legacySupport.trueColumn'), dataIndex: 'true_count', width: 100 },
+    { title: t('legacySupport.falseColumn'), dataIndex: 'false_count', width: 100 },
+    { title: t('legacySupport.moreColumn'), dataIndex: 'more_count', width: 160 },
   ];
 
   return (
@@ -75,22 +77,22 @@ export default function LegacySupportPage() {
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/admin')}>
-              Back
+              {t('legacySupport.back')}
             </Button>
             <Space>
               <Button loading={fetchingDeps} onClick={handleFetchDeps}>
-                Get QL dependencies
+                {t('legacySupport.getQlDeps')}
               </Button>
               <Button icon={<ReloadOutlined />} onClick={() => void loadData()}>
-                Refresh
+                {t('legacySupport.refresh')}
               </Button>
             </Space>
           </Space>
           <Title level={3} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>
-            Legacy Helper Commands
+            {t('legacySupport.title')}
           </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Web equivalents of `vulnseeker-validate`.
+            {t('legacySupport.description')}
           </Paragraph>
         </Space>
       </Card>
@@ -98,30 +100,30 @@ export default function LegacySupportPage() {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} lg={8}>
           <Card loading={loading} style={{ borderRadius: 22 }}>
-            <Statistic title="Repositories With Results" value={stats.length} />
+            <Statistic title={t('legacySupport.reposWithResults')} value={stats.length} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
           <Card loading={loading} style={{ borderRadius: 22 }}>
-            <Statistic title="Total Indexed Issues" value={stats.reduce((sum, item) => sum + item.total, 0)} />
+            <Statistic title={t('legacySupport.totalIndexedIssues')} value={stats.reduce((sum, item) => sum + item.total, 0)} />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
           <Card loading={loading} style={{ borderRadius: 22 }}>
-            <Statistic title="Configuration Status" value={validation?.valid ? 'Valid' : 'Needs Attention'} />
+            <Statistic title={t('legacySupport.configStatus')} value={validation?.valid ? t('legacySupport.configValid') : t('legacySupport.configNeedsAttention')} />
           </Card>
         </Col>
       </Row>
 
-      <Card title="Configuration Validation" style={{ marginBottom: 16, borderRadius: 24 }}>
+      <Card title={t('legacySupport.configValidation')} style={{ marginBottom: 16, borderRadius: 24 }}>
         {validation && (
           validation.valid ? (
-            <Alert type="success" showIcon message="All configuration checks passed." />
+            <Alert type="success" showIcon message={t('legacySupport.configPassed')} />
           ) : (
             <Alert
               type="error"
               showIcon
-              message="Configuration validation failed"
+              message={t('legacySupport.configFailed')}
               description={
                 <Space direction="vertical" size={6}>
                   {validation.errors.map((error) => (
@@ -135,8 +137,8 @@ export default function LegacySupportPage() {
       </Card>
 
       <Card
-        title="Repository Statistics"
-        extra={<Tag color="blue">{stats.length} repos</Tag>}
+        title={t('legacySupport.repoStatistics')}
+        extra={<Tag color="blue">{t('legacySupport.reposCount', { count: stats.length })}</Tag>}
         style={{ borderRadius: 24 }}
       >
         <Table

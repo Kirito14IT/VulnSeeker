@@ -17,19 +17,13 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { useTranslation } from 'react-i18next';
 
 import type { IssueDetail, IssueSummary } from '../types';
 import MarkdownSummary from './MarkdownSummary';
 
 
 const { Text, Paragraph } = Typography;
-
-const STATUS_LABEL: Record<string, string> = {
-  true: 'True Positive',
-  false: 'False Positive',
-  more: 'Needs More Data',
-  raw: 'Raw Match',
-};
 
 const DECISION_COLORS: Record<string, string> = {
   'True Positive': 'green',
@@ -68,6 +62,7 @@ function extractLocationLine(detail: IssueDetail | null): number | null {
 
 
 function CodeBlock({ content, highlightLine }: { content: string; highlightLine: number | null }) {
+  const { t } = useTranslation();
   const lines = content.split('\n');
 
   return (
@@ -90,7 +85,7 @@ function CodeBlock({ content, highlightLine }: { content: string; highlightLine:
           textTransform: 'uppercase',
         }}
       >
-        Code Context
+        {t('issueExplorer.codeContext')}
       </div>
       <pre
         style={{
@@ -136,6 +131,7 @@ export default function IssueExplorer({
   onDecisionChange,
   controlsExtra,
 }: Props) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [llmFilter, setLlmFilter] = useState<string>('All');
   const [decisionFilter, setDecisionFilter] = useState<string>('All');
@@ -144,8 +140,8 @@ export default function IssueExplorer({
   const filteredIssues = useMemo(() => (
     issues.filter((issue) => {
       const query = search.trim().toLowerCase();
-      const statusLabel = STATUS_LABEL[issue.status] ?? issue.status;
-      const manual = issue.manual_decision ?? 'Not Set';
+      const statusLabel = t('decision.' + issue.status);
+      const manual = issue.manual_decision ?? t('decision.notSet');
       const matchesSearch = !query
         || issue.id.toLowerCase().includes(query)
         || issue.name.toLowerCase().includes(query)
@@ -161,48 +157,48 @@ export default function IssueExplorer({
 
       return matchesSearch && matchesLlm && matchesDecision;
     })
-  ), [decisionFilter, issues, llmFilter, search]);
+  ), [decisionFilter, issues, llmFilter, search, t]);
 
   const columns: ColumnsType<IssueSummary> = [
     {
-      title: 'ID',
+      title: t('table.id'),
       dataIndex: 'id',
       width: 80,
       ellipsis: true,
       sorter: (a, b) => Number(a.id) - Number(b.id),
     },
     {
-      title: 'LLM Decision',
+      title: t('table.llmDecision'),
       dataIndex: 'status',
       width: 150,
       render: (value: string) => {
-        const label = STATUS_LABEL[value] ?? value;
+        const label = t('decision.' + value);
         return <Tag color={DECISION_COLORS[label]}>{label}</Tag>;
       },
     },
     {
-      title: 'Manual',
+      title: t('table.manual'),
       dataIndex: 'manual_decision',
       width: 150,
       render: (value: string | null) => {
-        const label = value ?? 'Not Set';
+        const label = value ?? t('decision.notSet');
         return <Tag color={DECISION_COLORS[label]}>{label}</Tag>;
       },
     },
     {
-      title: 'Repo',
+      title: t('table.repo'),
       dataIndex: 'repo',
       width: 180,
       ellipsis: true,
       render: (value: string) => <Text code style={{ fontSize: 12, display: 'block' }} title={value}>{value}</Text>,
     },
     {
-      title: 'Issue Name',
+      title: t('table.issueName'),
       dataIndex: 'name',
       ellipsis: true,
     },
     {
-      title: 'File',
+      title: t('table.file'),
       dataIndex: 'file',
       width: 190,
       ellipsis: true,
@@ -233,29 +229,29 @@ export default function IssueExplorer({
         <Space wrap size={[12, 12]} style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space wrap>
             <Input.Search
-              placeholder="Search id / name / file / repo / decision"
+              placeholder={t('issueExplorer.searchPlaceholder')}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               style={{ width: 280 }}
               allowClear
             />
             <Select value={llmFilter} onChange={setLlmFilter} style={{ width: 170 }}>
-              <Select.Option value="All">All LLM Decisions</Select.Option>
-              <Select.Option value="true">True Positive</Select.Option>
-              <Select.Option value="false">False Positive</Select.Option>
-              <Select.Option value="more">Needs More Data</Select.Option>
-              <Select.Option value="raw">Raw Match</Select.Option>
+              <Select.Option value="All">{t('issueExplorer.allLlmDecisions')}</Select.Option>
+              <Select.Option value="true">{t('decision.truePositive')}</Select.Option>
+              <Select.Option value="false">{t('decision.falsePositive')}</Select.Option>
+              <Select.Option value="more">{t('decision.needsMoreData')}</Select.Option>
+              <Select.Option value="raw">{t('decision.rawMatch')}</Select.Option>
             </Select>
             <Select value={decisionFilter} onChange={setDecisionFilter} style={{ width: 180 }}>
-              <Select.Option value="All">All Manual Decisions</Select.Option>
-              <Select.Option value="True Positive">True Positive</Select.Option>
-              <Select.Option value="False Positive">False Positive</Select.Option>
-              <Select.Option value="Uncertain">Uncertain</Select.Option>
-              <Select.Option value="Not Set">Not Set</Select.Option>
+              <Select.Option value="All">{t('issueExplorer.allManualDecisions')}</Select.Option>
+              <Select.Option value="True Positive">{t('decision.truePositive')}</Select.Option>
+              <Select.Option value="False Positive">{t('decision.falsePositive')}</Select.Option>
+              <Select.Option value="Uncertain">{t('decision.uncertain')}</Select.Option>
+              <Select.Option value="Not Set">{t('decision.notSet')}</Select.Option>
             </Select>
           </Space>
           <Space wrap>
-            <Text type="secondary">Showing {filteredIssues.length} of {issues.length} issues</Text>
+            <Text type="secondary">{t('issueExplorer.showing', { count: filteredIssues.length, total: issues.length })}</Text>
             {controlsExtra}
           </Space>
         </Space>
@@ -265,7 +261,7 @@ export default function IssueExplorer({
         <Col xs={24} xl={11}>
           <Card
             size="small"
-            title="Issues"
+            title={t('issueExplorer.issues')}
             style={{
               borderRadius: 24,
               height: EXPLORER_CARD_HEIGHT,
@@ -275,7 +271,7 @@ export default function IssueExplorer({
             bodyStyle={{ padding: 0, height: EXPLORER_CARD_HEIGHT - 56, overflow: 'hidden' }}
           >
             {filteredIssues.length === 0 && !loading ? (
-              <Empty description="No issues match the current filters" style={{ margin: '56px 0' }} />
+              <Empty description={t('issueExplorer.noFilterResults')} style={{ margin: '56px 0' }} />
             ) : (
               <Table
                 className="issue-explorer-table"
@@ -304,7 +300,7 @@ export default function IssueExplorer({
         <Col xs={24} xl={13}>
           <Card
             size="small"
-            title={selectedIssue ? `Issue #${selectedIssue.id}` : 'Issue Detail'}
+            title={selectedIssue ? t('issueExplorer.issueLabel', { id: selectedIssue.id }) : t('issueExplorer.issueDetail')}
             style={{
               borderRadius: 24,
               border: '1px solid #e5e7eb',
@@ -314,27 +310,31 @@ export default function IssueExplorer({
             bodyStyle={{ height: EXPLORER_CARD_HEIGHT - 56, overflow: 'hidden' }}
             extra={selectedIssue && selectedIssue.finalized ? (
               <Space>
-                <Text type="secondary">Manual decision</Text>
+                <Text type="secondary">{t('issueExplorer.manualDecision')}</Text>
                 <Select
-                  value={selectedIssue.manual_decision ?? 'Not Set'}
-                  onChange={(value) => onDecisionChange(selectedIssue.id, value === 'Not Set' ? null : value)}
+                  value={selectedIssue.manual_decision ?? t('decision.notSet')}
+                  onChange={(value) => onDecisionChange(selectedIssue.id, value === t('decision.notSet') ? null : value)}
                   style={{ width: 170 }}
                 >
                   {DECISIONS.map((decision) => (
                     <Select.Option key={decision} value={decision}>
-                      {decision}
+                      {t('decision.' + {
+                        'True Positive': 'truePositive',
+                        'False Positive': 'falsePositive',
+                        'Uncertain': 'uncertain',
+                      }[decision])}
                     </Select.Option>
                   ))}
-                  <Select.Option value="Not Set">Not Set</Select.Option>
+                  <Select.Option value={t('decision.notSet')}>{t('decision.notSet')}</Select.Option>
                 </Select>
               </Space>
             ) : selectedIssue ? (
-              <Text type="secondary">LLM not finalized</Text>
+              <Text type="secondary">{t('issueExplorer.llmNotFinalized')}</Text>
             ) : null}
           >
             {!selectedIssue ? (
               <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>
-                <Empty description="Select an issue to inspect the full analysis" />
+                <Empty description={t('issueExplorer.noSelection')} />
               </div>
             ) : detailLoading || !issueDetail ? (
               <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>
@@ -343,18 +343,18 @@ export default function IssueExplorer({
             ) : (
               <div style={{ height: DETAIL_CONTENT_HEIGHT, overflowY: 'auto', paddingRight: 6 }}>
                 <Space wrap style={{ marginBottom: 12 }}>
-                  <Tag color={DECISION_COLORS[STATUS_LABEL[issueDetail.status] ?? issueDetail.status]}>
-                    {STATUS_LABEL[issueDetail.status] ?? issueDetail.status}
+                  <Tag color={DECISION_COLORS[t('decision.' + issueDetail.status)]}>
+                    {t('decision.' + issueDetail.status)}
                   </Tag>
-                  {!issueDetail.finalized && <Tag color="blue">Raw Only</Tag>}
+                  {!issueDetail.finalized && <Tag color="blue">{t('issueExplorer.rawOnly')}</Tag>}
                   <Text strong>{issueDetail.name}</Text>
                 </Space>
 
                 <Descriptions column={2} size="small" bordered>
-                  <Descriptions.Item label="Repository">{issueDetail.repo}</Descriptions.Item>
-                  <Descriptions.Item label="Issue Type">{issueDetail.issue_type}</Descriptions.Item>
-                  <Descriptions.Item label="File">{issueDetail.file}:{issueDetail.line}</Descriptions.Item>
-                  <Descriptions.Item label="Function">{functionName ?? 'N/A'}</Descriptions.Item>
+                  <Descriptions.Item label={t('issueExplorer.repository')}>{issueDetail.repo}</Descriptions.Item>
+                  <Descriptions.Item label={t('issueExplorer.issueType')}>{issueDetail.issue_type}</Descriptions.Item>
+                  <Descriptions.Item label={t('issueExplorer.file')}>{issueDetail.file}:{issueDetail.line}</Descriptions.Item>
+                  <Descriptions.Item label={t('issueExplorer.function')}>{functionName ?? t('issueExplorer.nA')}</Descriptions.Item>
                 </Descriptions>
 
                 {issueDetail.snippets.length > 0 && (
@@ -375,22 +375,22 @@ export default function IssueExplorer({
 
                 <Divider />
                 <Space wrap style={{ width: '100%', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text strong>{selectedIssueFinalized ? 'LLM Final Answer' : 'Raw Match Summary'}</Text>
+                <Text strong>{selectedIssueFinalized ? t('issueExplorer.llmFinalAnswer') : t('issueExplorer.rawMatchSummary')}</Text>
                   <Segmented
                     size="small"
                     value={summaryMode}
                     onChange={(value) => setSummaryMode(value as 'rendered' | 'raw')}
                     options={[
-                      { label: 'Rendered', value: 'rendered' },
-                      { label: 'Raw', value: 'raw' },
+                      { label: t('issueExplorer.rendered'), value: 'rendered' },
+                      { label: t('issueExplorer.raw'), value: 'raw' },
                     ]}
                   />
                 </Space>
                 {summaryMode === 'rendered' ? (
-                  <MarkdownSummary content={issueDetail.summary || 'No summary available'} />
+                  <MarkdownSummary content={issueDetail.summary || t('issueExplorer.noSummary')} />
                 ) : (
                   <Paragraph style={{ marginTop: 8, whiteSpace: 'pre-wrap', fontSize: 13 }}>
-                    {issueDetail.summary || 'No summary available'}
+                    {issueDetail.summary || t('issueExplorer.noSummary')}
                   </Paragraph>
                 )}
               </div>

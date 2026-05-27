@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -9,10 +10,12 @@ type Props = {
 
 
 export default function MarkdownSummary({ content, compact = false }: Props) {
+  const { t } = useTranslation();
+
   return (
     <div className={compact ? 'markdown-summary markdown-summary-compact' : 'markdown-summary'}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {content || 'No summary available'}
+        {content || t('markdownSummary.noSummary')}
       </ReactMarkdown>
     </div>
   );

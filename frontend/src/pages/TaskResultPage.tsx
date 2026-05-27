@@ -7,6 +7,7 @@ import {
   PlayCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { io } from 'socket.io-client';
 
 import { tasksApi, resultsApi } from '../api';
@@ -16,11 +17,6 @@ import { getTaskPresentation } from '../utils/taskPresentation';
 
 
 const { Title, Text } = Typography;
-const SOURCE_LABEL: Record<string, string> = {
-  github: 'GitHub DB',
-  local_db: 'Local CodeQL DB',
-  local_src: 'Local Source',
-};
 
 const TASK_PANELS_HEIGHT = 812;
 
@@ -37,6 +33,7 @@ export default function TaskResultPage() {
   const shouldStickLogsRef = useRef(true);
   const taskRef = useRef<Task | null>(null);
   const activeTaskIdRef = useRef<number | null>(null);
+  const { t } = useTranslation();
 
   const [task, setTask] = useState<Task | null>(null);
   const [issues, setIssues] = useState<IssueSummary[]>([]);
@@ -78,7 +75,7 @@ export default function TaskResultPage() {
         setLogs(response.lines);
       }
     } catch {
-      message.error('Failed to load persisted logs');
+      message.error(t('taskResult.logsLoadFailed'));
     }
   }, [tid]);
 
@@ -94,7 +91,7 @@ export default function TaskResultPage() {
         setIssues(data);
       }
     } catch {
-      message.error('Failed to load issues');
+      message.error(t('taskResult.issuesLoadFailed'));
     } finally {
       if (activeTaskIdRef.current === tid) {
         setLoading(false);
@@ -111,7 +108,7 @@ export default function TaskResultPage() {
         setIssueDetail(detail);
       }
     } catch {
-      message.error('Failed to load issue detail');
+      message.error(t('taskResult.detailLoadFailed'));
     } finally {
       if (activeTaskIdRef.current === tid) {
         setDetailLoading(false);
@@ -131,9 +128,9 @@ export default function TaskResultPage() {
       setIssueDetail((previous) => (
         previous && previous.id === issueId ? { ...previous, manual_decision: decision } : previous
       ));
-      message.success(decision ? 'Decision saved' : 'Decision cleared');
+      message.success(decision ? t('taskResult.decisionSaved') : t('taskResult.decisionCleared'));
     } catch {
-      message.error('Failed to save decision');
+      message.error(t('taskResult.decisionSaveFailed'));
     }
   }, [tid]);
 
@@ -143,14 +140,14 @@ export default function TaskResultPage() {
     }
 
     const socket = io(import.meta.env.VITE_API_BASE || undefined, {
-    path: '/socket.io',
-    transports: ['polling', 'websocket'], // 先polling再升级ws
-    reconnection: true,
-});
+      path: '/socket.io',
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+    });
 
-socket.on('connect_error', (err) => {
-  console.error('socket connect_error:', err.message, err);
-});
+    socket.on('connect_error', (err) => {
+      console.error('socket connect_error:', err.message, err);
+    });
 
     socket.on('connect', () => {
       socket.emit('join_task', { task_id: taskId });
@@ -226,8 +223,8 @@ socket.on('connect_error', (err) => {
     if (!task) {
       return '';
     }
-    return `${SOURCE_LABEL[task.source_type] ?? task.source_type} · ${task.repo_url}`;
-  }, [task]);
+    return `${t(`source.${task.source_type}`)} · ${task.repo_url}`;
+  }, [task, t]);
 
   if (!task) {
     return (
@@ -260,14 +257,14 @@ socket.on('connect_error', (err) => {
             <Space direction="vertical" size={6}>
               <Space>
                 <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
-                  Back
+                  {t('taskResult.back')}
                 </Button>
                 <Tag color={taskPresentation.color} style={{ paddingInline: 10 }}>
-                  {taskPresentation.statusLabel}
+                  {t(`status.${taskPresentation.statusLabelKey}`)}
                 </Tag>
               </Space>
               <Title level={3} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>
-                Task #{task.id}
+                {t('taskResult.taskLabel', { id: task.id })}
               </Title>
               <Text type="secondary">{sourceText}</Text>
             </Space>
@@ -286,14 +283,14 @@ socket.on('connect_error', (err) => {
                       setIssues([]);
                       setSelectedIssue(null);
                       setIssueDetail(null);
-                      message.success(isFailed ? 'Task restarted' : 'Task started');
+                      message.success(isFailed ? t('taskResult.restarted') : t('taskResult.started'));
                     } catch (error: unknown) {
                       const response = error as { response?: { data?: { detail?: string } } };
-                      message.error(response.response?.data?.detail ?? 'Failed to start task');
+                      message.error(response.response?.data?.detail ?? t('taskResult.startFailed'));
                     }
                   }}
                 >
-                  {isFailed ? 'Retry Analysis' : 'Start Analysis'}
+                  {isFailed ? t('taskResult.retryAnalysis') : t('taskResult.startAnalysis')}
                 </Button>
               )}
               <Button icon={<ReloadOutlined />} onClick={() => {
@@ -304,14 +301,14 @@ socket.on('connect_error', (err) => {
                   }
                 });
               }}>
-                Refresh
+                {t('taskResult.refresh')}
               </Button>
               {canLoadIssueResults(task) && (
                 <Button
                   icon={<BarChartOutlined />}
                   onClick={() => navigate(`/tasks/${tid}/visualization`)}
                 >
-                  Visualization / Report
+                  {t('taskResult.visualizationReport')}
                 </Button>
               )}
             </Space>
@@ -331,10 +328,10 @@ socket.on('connect_error', (err) => {
           {taskPresentation.isPartialLlmFailure ? (
             <Space direction="vertical" size={8}>
               <Text strong style={{ color: '#a16207' }}>
-                CodeQL found {taskPresentation.rawCount} raw issue(s), but the LLM stage did not finish.
+                {t('taskResult.partialWarning', { rawCount: taskPresentation.rawCount })}
               </Text>
               <Text type="secondary">
-                This is usually an LLM connectivity or provider problem, not a CodeQL detection problem.
+                {t('taskResult.partialHint')}
               </Text>
               <Text style={{ color: '#92400e' }}>{task.error_message}</Text>
             </Space>
@@ -347,9 +344,9 @@ socket.on('connect_error', (err) => {
       <Row gutter={16} align="top">
         <Col xs={24} xl={7}>
           <Card
-            title="Execution Log"
+            title={t('taskResult.executionLog')}
             size="small"
-            extra={<Text type="secondary">{logs.length} lines</Text>}
+            extra={<Text type="secondary">{t('taskResult.lines', { count: logs.length })}</Text>}
             style={{
               borderRadius: 24,
               height: TASK_PANELS_HEIGHT,
@@ -363,7 +360,7 @@ socket.on('connect_error', (err) => {
             {logs.length === 0 ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={<span style={{ color: '#94a3b8' }}>No persisted logs yet</span>}
+                description={<span style={{ color: '#94a3b8' }}>{t('taskResult.noLogs')}</span>}
                 style={{ marginTop: 120 }}
               />
             ) : (
@@ -414,8 +411,11 @@ socket.on('connect_error', (err) => {
                 <Alert
                   type="warning"
                   showIcon
-                  message="Partial analysis result"
-                  description={`CodeQL found ${taskPresentation.rawCount} raw issue(s), but the LLM stage produced ${taskPresentation.finalCount} finalized result(s). Raw matches are still available below.`}
+                  message={t('taskResult.partialResult')}
+                  description={t('taskResult.partialResultDesc', {
+                    rawCount: taskPresentation.rawCount,
+                    finalCount: taskPresentation.finalCount,
+                  })}
                 />
               </Card>
               <IssueExplorer
@@ -430,15 +430,15 @@ socket.on('connect_error', (err) => {
             </Space>
           ) : isPending ? (
             <Card style={{ borderRadius: 24 }}>
-              <Empty description="This task has not started yet. Start the analysis to generate results." />
+              <Empty description={t('taskResult.notStarted')} />
             </Card>
           ) : isRunning ? (
             <Card style={{ borderRadius: 24 }}>
-              <Empty description="Analysis is running. Results will appear here as soon as the task completes." />
+              <Empty description={t('taskResult.running')} />
             </Card>
           ) : (
             <Card style={{ borderRadius: 24 }}>
-              <Empty description="Task failed before results were generated." />
+              <Empty description={t('taskResult.failedBeforeResults')} />
             </Card>
           )}
         </Col>

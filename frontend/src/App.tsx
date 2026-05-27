@@ -2,10 +2,14 @@
  * Main App component with routing and auth guard.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
+import enUS from 'antd/locale/en_US';
+import zhCN from 'antd/locale/zh_CN';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from './stores/authStore';
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -33,13 +37,29 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   const hydrate = useAuthStore((s) => s.hydrate);
+  const { i18n } = useTranslation();
+
+  const [antdLocale, setAntdLocale] = useState(
+    i18n.language.startsWith('zh') ? zhCN : enUS,
+  );
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
+  useEffect(() => {
+    const handler = (lng: string) => {
+      setAntdLocale(lng.startsWith('zh') ? zhCN : enUS);
+      document.documentElement.lang = lng.startsWith('zh') ? 'zh' : 'en';
+    };
+    i18n.on('languageChanged', handler);
+    document.documentElement.lang = i18n.language.startsWith('zh') ? 'zh' : 'en';
+    return () => { i18n.off('languageChanged', handler); };
+  }, [i18n]);
+
   return (
     <ConfigProvider
+      locale={antdLocale}
       theme={{
         token: {
           colorPrimary: '#0f766e',
@@ -53,6 +73,9 @@ function App() {
       }}
     >
       <AntApp>
+        <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000 }}>
+          <LanguageSwitcher />
+        </div>
         <BrowserRouter>
           <Routes>
             <Route

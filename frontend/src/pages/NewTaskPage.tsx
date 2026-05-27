@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Alert, Button, Card, Checkbox, Form, Input, Radio, Space, Typography, message } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { tasksApi } from '../api';
 import type { TaskCreate, TaskSource } from '../types';
@@ -9,40 +10,23 @@ import type { TaskCreate, TaskSource } from '../types';
 
 const { Title, Paragraph, Text } = Typography;
 
-const SOURCE_HELP: Record<TaskSource, { title: string; hint: string }> = {
-  github: {
-    title: 'GitHub prebuilt database',
-    hint: 'Use the classic org/repo flow and pull the published CodeQL database from GitHub.',
-  },
-  local_db: {
-    title: 'Existing local CodeQL database',
-    hint: 'Point to a server-local CodeQL database directory. Absolute paths work, and relative paths are resolved from the VulnSeeker repo root. Example: output/databases/c/redis or /mnt/e/.../output/databases/c/redis/cpp. This mode reuses the DB directly and does not support rebuild.',
-  },
-  local_src: {
-    title: 'Local source tree',
-    hint: 'Point to a source repository directory, not a single .c file. Put local projects under local_repos/ and enter a folder path such as local_repos/demo_c_project or an absolute path to that folder.',
-  },
+const SOURCE_HELP_KEYS: Record<TaskSource, { titleKey: string; hintKey: string }> = {
+  github: { titleKey: 'newTask.sourceHelp.github', hintKey: 'newTask.sourceHelp.githubHint' },
+  local_db: { titleKey: 'newTask.sourceHelp.localDb', hintKey: 'newTask.sourceHelp.localDbHint' },
+  local_src: { titleKey: 'newTask.sourceHelp.localSrc', hintKey: 'newTask.sourceHelp.localSrcHint' },
 };
 
-const FORCE_LABEL: Partial<Record<TaskSource, string>> = {
-  github: 'Force re-download the GitHub CodeQL database even if a cached copy already exists',
-  local_src: 'Force rebuild the local CodeQL database even if a cached database already exists for this source tree',
+const FORCE_LABEL_KEYS: Partial<Record<TaskSource, string>> = {
+  github: 'newTask.forceGithub',
+  local_src: 'newTask.forceLocalSrc',
 };
-
-// Available languages
-const LANGUAGE_OPTIONS = [
-  { label: 'C / C++', value: 'cpp' },
-  { label: 'Java / Kotlin', value: 'java' },
-  { label: 'JavaScript', value: 'javascript' },
-  { label: 'Python', value: 'python' },
-];
-
 
 export default function NewTaskPage() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const sourceType = Form.useWatch('source_type', form) ?? 'github';
-  const forceLabel = FORCE_LABEL[sourceType as TaskSource];
+  const forceLabelKey = FORCE_LABEL_KEYS[sourceType as TaskSource];
 
   useEffect(() => {
     if (sourceType === 'local_db') {
@@ -52,27 +36,26 @@ export default function NewTaskPage() {
 
   const handleCreate = async (values: any) => {
     try {
-      // Ensure language is a string (comma separated if multiple)
       const submitValues: TaskCreate = {
         ...values,
         language: Array.isArray(values.language) ? values.language.join(',') : values.language,
       };
-      
+
       const task = await tasksApi.create(submitValues);
-      message.success('Task created');
+      message.success(t('newTask.created'));
       navigate(`/tasks/${task.id}`);
     } catch (error: unknown) {
       const response = error as { response?: { data?: { detail?: string } } };
-      message.error(response.response?.data?.detail ?? 'Failed to create task');
+      message.error(response.response?.data?.detail ?? t('newTask.createFailed'));
     }
   };
 
-  const currentHelp = SOURCE_HELP[sourceType as TaskSource];
+  const currentHelp = SOURCE_HELP_KEYS[sourceType as TaskSource];
 
   return (
     <div style={{ padding: 24 }}>
       <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
-        Back
+        {t('common.back')}
       </Button>
 
       <Card
@@ -89,11 +72,10 @@ export default function NewTaskPage() {
         <Space direction="vertical" size={20} style={{ width: '100%' }}>
           <div>
             <Title level={2} style={{ marginBottom: 8, fontFamily: 'Georgia, serif' }}>
-              Create Analysis Task
+              {t('newTask.title')}
             </Title>
             <Paragraph type="secondary" style={{ maxWidth: 700, marginBottom: 0 }}>
-              The web runner now covers the full legacy CLI analysis flow. Choose whether this task
-              should fetch from GitHub, reuse an existing local database, or build from a local source tree.
+              {t('newTask.description')}
             </Paragraph>
           </div>
 
@@ -101,8 +83,8 @@ export default function NewTaskPage() {
             <Alert
               type="info"
               showIcon
-              message={currentHelp.title}
-              description={currentHelp.hint}
+              message={t(currentHelp.titleKey)}
+              description={t(currentHelp.hintKey)}
               style={{ borderRadius: 18 }}
             />
           )}
@@ -113,15 +95,15 @@ export default function NewTaskPage() {
             initialValues={{ source_type: 'github', language: ['cpp'], force: false }}
             onFinish={handleCreate}
           >
-            <Form.Item name="source_type" label="Source Mode">
+            <Form.Item name="source_type" label={t('newTask.sourceMode')}>
               <Radio.Group
                 optionType="button"
                 buttonStyle="solid"
                 style={{ width: '100%' }}
                 options={[
-                  { label: 'GitHub DB', value: 'github' },
-                  { label: 'Local DB', value: 'local_db' },
-                  { label: 'Local Source', value: 'local_src' },
+                  { label: t('newTask.sourceOption.github'), value: 'github' },
+                  { label: t('newTask.sourceOption.localDb'), value: 'local_db' },
+                  { label: t('newTask.sourceOption.localSrc'), value: 'local_src' },
                 ]}
               />
             </Form.Item>
@@ -129,39 +111,46 @@ export default function NewTaskPage() {
             {sourceType === 'github' ? (
               <Form.Item
                 name="repo_url"
-                label="GitHub Repository"
-                rules={[{ required: true, message: 'Enter org/repo, for example redis/redis' }]}
+                label={t('newTask.githubRepo')}
+                rules={[{ required: true, message: t('newTask.repoValidateMsg') }]}
               >
-                <Input size="large" placeholder="redis/redis" />
+                <Input size="large" placeholder={t('newTask.repoPlaceholder')} />
               </Form.Item>
             ) : (
               <Form.Item
                 name="source_path"
-                label={sourceType === 'local_db' ? 'Local Database Path' : 'Local Source Path'}
-                rules={[{ required: true, message: 'Enter a server-local filesystem path' }]}
+                label={sourceType === 'local_db' ? t('newTask.localDbPath') : t('newTask.localSrcPath')}
+                rules={[{ required: true, message: t('newTask.localValidateMsg') }]}
               >
                 <Input
                   size="large"
                   placeholder={sourceType === 'local_db'
-                    ? 'output/databases/c/redis or /mnt/e/.../output/databases/c/redis/cpp'
-                    : 'local_repos/demo_c_project or /mnt/e/.../local_repos/demo_c_project'}
+                    ? t('newTask.localDbPlaceholder')
+                    : t('newTask.localSrcPlaceholder')}
                 />
               </Form.Item>
             )}
 
             <Form.Item
               name="language"
-              label="Languages"
-              rules={[{ required: true, message: 'Select at least one language' }]}
-              extra="Select the languages to scan in the repository."
+              label={t('newTask.languages')}
+              rules={[{ required: true, message: t('newTask.langValidateMsg') }]}
+              extra={t('newTask.langExtra')}
             >
-              <Checkbox.Group options={LANGUAGE_OPTIONS} />
+              <Checkbox.Group
+                options={[
+                  { label: t('newTask.lang.cpp'), value: 'cpp' },
+                  { label: t('newTask.lang.java'), value: 'java' },
+                  { label: t('newTask.lang.javascript'), value: 'javascript' },
+                  { label: t('newTask.lang.python'), value: 'python' },
+                ]}
+              />
             </Form.Item>
 
-            {forceLabel && (
+            {forceLabelKey && (
               <Form.Item name="force" valuePropName="checked">
                 <Checkbox>
-                  {forceLabel}
+                  {t(forceLabelKey)}
                 </Checkbox>
               </Form.Item>
             )}
@@ -175,34 +164,24 @@ export default function NewTaskPage() {
               }}
             >
               <Space direction="vertical" size={4}>
-                <Text strong>Execution Notes</Text>
-                <Text type="secondary">
-                  Each web task runs inside its own isolated workspace snapshot under `output/web_tasks/`.
-                </Text>
-                <Text type="secondary">
-                  Legacy CLI results under the repo root remain untouched and continue to work as before.
-                </Text>
+                <Text strong>{t('newTask.executionNotes')}</Text>
+                <Text type="secondary">{t('newTask.noteWorkspace')}</Text>
+                <Text type="secondary">{t('newTask.noteLegacy')}</Text>
                 {sourceType !== 'github' && (
-                  <Text type="secondary">
-                    For local paths, prefer folder paths. `local_db` accepts either a single DB directory or a parent directory that contains one.
-                  </Text>
+                  <Text type="secondary">{t('newTask.noteLocalPath')}</Text>
                 )}
                 {sourceType === 'local_db' && (
-                  <Text type="secondary">
-                    `Local DB` reuses the path you provide as-is. There is no download or rebuild step in this mode.
-                  </Text>
+                  <Text type="secondary">{t('newTask.noteLocalDb')}</Text>
                 )}
                 {sourceType === 'local_src' && (
-                  <Text type="secondary">
-                    Recommended convention: place local source repositories under `local_repos/` at the project root, then enter paths like `local_repos/demo_c_project`.
-                  </Text>
+                  <Text type="secondary">{t('newTask.noteLocalSrc')}</Text>
                 )}
               </Space>
             </Card>
 
             <Form.Item style={{ marginBottom: 0 }}>
               <Button type="primary" htmlType="submit" size="large" block>
-                Create Task
+                {t('newTask.createBtn')}
               </Button>
             </Form.Item>
           </Form>

@@ -1,6 +1,7 @@
 import { Button, Card, Space, Typography } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 
 const { Title, Paragraph } = Typography;
@@ -8,6 +9,7 @@ const { Title, Paragraph } = Typography;
 
 export default function SecureCodingEvalPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div style={{ padding: 24 }}>
@@ -21,13 +23,13 @@ export default function SecureCodingEvalPage() {
       >
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
-            Back
+            {t('secureCoding.back')}
           </Button>
           <Title level={3} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>
-            Secure Coding LLM Evaluation
+            {t('secureCoding.title')}
           </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Evaluating large language models for secure coding.
+            {t('secureCoding.description')}
           </Paragraph>
         </Space>
       </Card>

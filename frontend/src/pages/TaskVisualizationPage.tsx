@@ -24,6 +24,7 @@ import {
   FileSearchOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import {
@@ -50,19 +51,6 @@ import { getTaskPresentation } from '../utils/taskPresentation';
 
 const { Title, Text, Paragraph } = Typography;
 
-const SOURCE_LABEL: Record<string, string> = {
-  github: 'GitHub DB',
-  local_db: 'Local CodeQL DB',
-  local_src: 'Local Source',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  true: 'True Positive',
-  false: 'False Positive',
-  more: 'Needs More Data',
-  raw: 'Raw Match',
-};
-
 const STATUS_COLOR: Record<string, string> = {
   true: '#22c55e',
   false: '#ef4444',
@@ -77,9 +65,12 @@ const MANUAL_COLORS: Record<string, string> = {
   'Not Set': '#94a3b8',
 };
 
+const DECISION_KEYS = ['true', 'false', 'more', 'raw'] as const;
+
 type ChartDatum = {
   name: string;
   value: number;
+  statusKey: string;
 };
 
 type RiskRecord = IssueSummary & {
@@ -177,10 +168,9 @@ function StatusPieChart({ data }: { data: ChartDatum[] }) {
     <ResponsiveContainer width="100%" height={260}>
       <PieChart>
         <Pie data={data} dataKey="value" nameKey="name" innerRadius={58} outerRadius={92} paddingAngle={4}>
-          {data.map((item) => {
-            const status = Object.entries(STATUS_LABEL).find(([, label]) => label === item.name)?.[0] ?? 'raw';
-            return <Cell key={item.name} fill={STATUS_COLOR[status]} />;
-          })}
+          {data.map((item) => (
+            <Cell key={item.name} fill={STATUS_COLOR[item.statusKey]} />
+          ))}
         </Pie>
         <Tooltip />
         <Legend />
@@ -210,13 +200,14 @@ function ManualStackChart({ data }: { data: Array<Record<string, number | string
 
 
 function FileRiskChart({ data }: { data: Array<{ file: string; risk: number; count: number }> }) {
+  const { t } = useTranslation();
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24, top: 12, bottom: 12 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#dbeafe" />
         <XAxis type="number" allowDecimals={false} />
         <YAxis type="category" dataKey="file" width={160} tick={{ fontSize: 11 }} />
-        <Tooltip formatter={(value, name) => [value, name === 'risk' ? 'Risk score' : name]} />
+        <Tooltip formatter={(value, name) => [value, name === 'risk' ? t('visualization.riskScoreTooltip') : name]} />
         <Bar dataKey="risk" fill="#0f766e" radius={[0, 8, 8, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -225,13 +216,14 @@ function FileRiskChart({ data }: { data: Array<{ file: string; risk: number; cou
 
 
 function LogTimelineChart({ data }: { data: ReturnType<typeof buildTimeline> }) {
+  const { t } = useTranslation();
   return (
     <ResponsiveContainer width="100%" height={260}>
       <LineChart data={data} margin={{ left: 8, right: 24, top: 12, bottom: 12 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#dbeafe" />
         <XAxis dataKey="index" tick={{ fontSize: 11 }} />
         <YAxis allowDecimals={false} />
-        <Tooltip labelFormatter={(index) => `Event #${index}`} />
+        <Tooltip labelFormatter={(index) => t('visualization.eventFormat', { index })} />
         <Legend />
         <Line type="monotone" dataKey="events" stroke="#2563eb" strokeWidth={2} dot={false} />
         <Line type="monotone" dataKey="issueDecisions" stroke="#16a34a" strokeWidth={2} dot={false} />
@@ -247,6 +239,7 @@ export default function TaskVisualizationPage() {
   const navigate = useNavigate();
   const tid = Number(taskId);
   const reportRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   const [task, setTask] = useState<Task | null>(null);
   const [issues, setIssues] = useState<IssueSummary[]>([]);
@@ -294,10 +287,10 @@ export default function TaskVisualizationPage() {
       });
       setDetails(nextDetails);
       if (failedDetails > 0) {
-        message.warning(`Loaded issues, but ${failedDetails} issue detail request(s) failed.`);
+        message.warning(t('visualization.loadWarning', { count: failedDetails }));
       }
     } catch {
-      message.error('Failed to load visualization data');
+      message.error(t('visualization.loadError'));
     } finally {
       setLoading(false);
     }
@@ -310,7 +303,7 @@ export default function TaskVisualizationPage() {
   const records = useMemo<RiskRecord[]>(() => (
     issues.map((issue) => {
       const detail = details[issueKey(issue)];
-      const summary = detail?.summary ?? 'No summary available';
+      const summary = detail?.summary ?? t('visualization.noSummary');
       return {
         ...issue,
         functionName: getFunctionName(detail),
@@ -318,10 +311,10 @@ export default function TaskVisualizationPage() {
         riskScore: riskScore(issue),
         statusCode: extractStatusCode(summary),
         summary,
-        snippetPreview: detail?.snippets?.[0]?.content?.split('\n').slice(0, 8).join('\n') ?? 'No code context available',
+        snippetPreview: detail?.snippets?.[0]?.content?.split('\n').slice(0, 8).join('\n') ?? t('visualization.noCodeContext'),
       };
     }).sort((a, b) => b.riskScore - a.riskScore || Number(a.id) - Number(b.id))
-  ), [details, issues]);
+  ), [details, issues, t]);
 
   const total = issues.length;
   const statusCounts = useMemo(() => countBy(issues.map((issue) => issue.status)), [issues]);
@@ -331,10 +324,10 @@ export default function TaskVisualizationPage() {
   const finalizedRate = pct(finalizedCount, total);
 
   const statusPieData = useMemo<ChartDatum[]>(() => (
-    (['true', 'false', 'more', 'raw'] as const)
-      .map((status) => ({ name: STATUS_LABEL[status], value: statusCounts[status] ?? 0 }))
+    DECISION_KEYS
+      .map((key) => ({ name: t('decision.' + key), value: statusCounts[key] ?? 0, statusKey: key }))
       .filter((item) => item.value > 0)
-  ), [statusCounts]);
+  ), [statusCounts, t]);
 
   const manualStackData = useMemo(() => ([{
     name: 'Manual review',
@@ -375,56 +368,56 @@ export default function TaskVisualizationPage() {
 
   const timelineData = useMemo(() => buildTimeline(logs), [logs]);
   const taskPresentation = task ? getTaskPresentation(task) : null;
-  const sourceText = task ? `${SOURCE_LABEL[task.source_type] ?? task.source_type} · ${task.repo_url}` : '';
+  const sourceText = task ? `${t(`source.${task.source_type}`)} · ${task.repo_url}` : '';
 
   const matrixColumns: ColumnsType<MatrixRecord> = [
-    { title: 'Issue Type', dataIndex: 'issueType', render: (value: string) => <Text code>{value}</Text> },
-    { title: 'TP', dataIndex: 'true', width: 80 },
-    { title: 'FP', dataIndex: 'false', width: 80 },
-    { title: 'More', dataIndex: 'more', width: 90 },
-    { title: 'Raw', dataIndex: 'raw', width: 80 },
-    { title: 'Total', dataIndex: 'total', width: 90 },
+    { title: t('visualization.issueType'), dataIndex: 'issueType', render: (value: string) => <Text code>{value}</Text> },
+    { title: t('visualization.matrixTP'), dataIndex: 'true', width: 80 },
+    { title: t('visualization.matrixFP'), dataIndex: 'false', width: 80 },
+    { title: t('visualization.matrixMore'), dataIndex: 'more', width: 90 },
+    { title: t('visualization.matrixRaw'), dataIndex: 'raw', width: 80 },
+    { title: t('visualization.matrixTotal'), dataIndex: 'total', width: 90 },
   ];
 
   const issueColumns: ColumnsType<RiskRecord> = [
     {
-      title: 'ID',
+      title: t('table.id'),
       dataIndex: 'id',
       width: 70,
       sorter: (a, b) => Number(a.id) - Number(b.id),
     },
     {
-      title: 'LLM Decision',
+      title: t('table.llmDecision'),
       dataIndex: 'status',
       width: 145,
-      render: (status: string) => <Tag color={STATUS_COLOR[status]}>{STATUS_LABEL[status] ?? status}</Tag>,
+      render: (status: string) => <Tag color={STATUS_COLOR[status]}>{t('decision.' + status)}</Tag>,
     },
     {
-      title: 'Manual',
+      title: t('table.manual'),
       dataIndex: 'manualLabel',
       width: 135,
       render: (value: string) => <Tag color={MANUAL_COLORS[value]}>{value}</Tag>,
     },
     {
-      title: 'Issue Type',
+      title: t('table.issueType'),
       dataIndex: 'issue_type',
       ellipsis: true,
       render: (value: string) => <Text code>{value}</Text>,
     },
     {
-      title: 'File:Line',
+      title: t('table.fileLine'),
       width: 210,
       render: (_, record) => <Text code>{record.file}:{record.line}</Text>,
     },
     {
-      title: 'Function',
+      title: t('table.function'),
       dataIndex: 'functionName',
       width: 190,
       ellipsis: true,
       render: (value: string) => <Text code>{value}</Text>,
     },
     {
-      title: 'Risk Score',
+      title: t('table.riskScore'),
       dataIndex: 'riskScore',
       width: 115,
       sorter: (a, b) => a.riskScore - b.riskScore,
@@ -434,7 +427,7 @@ export default function TaskVisualizationPage() {
 
   const exportPdf = useCallback(async () => {
     if (!reportRef.current) {
-      message.error('Report container is not ready');
+      message.error(t('visualization.containerNotReady'));
       return;
     }
     setExporting(true);
@@ -465,9 +458,9 @@ export default function TaskVisualizationPage() {
       }
 
       pdf.save(`vulnseeker-task-${tid}-analysis-report.pdf`);
-      message.success('PDF report exported');
+      message.success(t('visualization.pdfExported'));
     } catch {
-      message.error('Failed to export PDF report');
+      message.error(t('visualization.pdfExportFailed'));
     } finally {
       setExporting(false);
     }
@@ -489,18 +482,18 @@ export default function TaskVisualizationPage() {
             <Space direction="vertical" size={10}>
               <Space wrap>
                 <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(`/tasks/${tid}`)}>
-                  Back to Results
+                  {t('visualization.backToResults')}
                 </Button>
-                {taskPresentation && <Tag color={taskPresentation.color}>{taskPresentation.statusLabel}</Tag>}
+                {taskPresentation && <Tag color={taskPresentation.color}>{t(`status.${taskPresentation.statusLabelKey}`)}</Tag>}
               </Space>
-              <Title level={2} className="visualization-title">Task #{task.id} Analysis Observatory</Title>
+              <Title level={2} className="visualization-title">{t('visualization.title', { id: task.id })}</Title>
               <Paragraph className="visualization-subtitle">{sourceText}</Paragraph>
             </Space>
           </Col>
           <Col>
             <Space wrap>
               <Button icon={<ReloadOutlined />} onClick={() => void loadData()}>
-                Reload
+                {t('visualization.reload')}
               </Button>
               <Button
                 type="primary"
@@ -509,7 +502,7 @@ export default function TaskVisualizationPage() {
                 disabled={!task.result_path || total === 0}
                 onClick={() => void exportPdf()}
               >
-                Export PDF Report
+                {t('visualization.exportPdf')}
               </Button>
             </Space>
           </Col>
@@ -518,58 +511,58 @@ export default function TaskVisualizationPage() {
 
       {!task.result_path ? (
         <Card style={{ borderRadius: 24 }}>
-          <Empty description="This task has no result snapshot yet. Run or finish analysis before opening visualization." />
+          <Empty description={t('visualization.noResultSnapshot')} />
         </Card>
       ) : total === 0 ? (
-        <Alert type="warning" showIcon message="No issues available for visualization." />
+        <Alert type="warning" showIcon message={t('visualization.noIssues')} />
       ) : (
         <>
           <Row gutter={[16, 16]} className="visualization-kpi-row">
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card"><Statistic title="Total Issues" value={total} /></Card>
+              <Card className="kpi-card"><Statistic title={t('visualization.totalIssues')} value={total} /></Card>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card kpi-green"><Statistic title="True Positive" value={statusCounts.true ?? 0} /></Card>
+              <Card className="kpi-card kpi-green"><Statistic title={t('visualization.truePositive')} value={statusCounts.true ?? 0} /></Card>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card kpi-red"><Statistic title="False Positive" value={statusCounts.false ?? 0} /></Card>
+              <Card className="kpi-card kpi-red"><Statistic title={t('visualization.falsePositive')} value={statusCounts.false ?? 0} /></Card>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card kpi-amber"><Statistic title="Needs More Data" value={statusCounts.more ?? 0} /></Card>
+              <Card className="kpi-card kpi-amber"><Statistic title={t('visualization.needsMoreData')} value={statusCounts.more ?? 0} /></Card>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card"><Statistic title="Manual Coverage" value={manualCoverage} suffix="%" /></Card>
+              <Card className="kpi-card"><Statistic title={t('visualization.manualCoverage')} value={manualCoverage} suffix="%" /></Card>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card"><Statistic title="Finalized Rate" value={finalizedRate} suffix="%" /></Card>
+              <Card className="kpi-card"><Statistic title={t('visualization.finalizedRate')} value={finalizedRate} suffix="%" /></Card>
             </Col>
           </Row>
 
           <Row gutter={[16, 16]}>
             <Col xs={24} xl={8}>
-              <Card className="visual-panel" title="LLM Decision Distribution">
+              <Card className="visual-panel" title={t('visualization.llmDistribution')}>
                 <StatusPieChart data={statusPieData} />
               </Card>
             </Col>
             <Col xs={24} xl={8}>
-              <Card className="visual-panel" title="Manual Review Stack">
+              <Card className="visual-panel" title={t('visualization.manualReviewStack')}>
                 <ManualStackChart data={manualStackData} />
               </Card>
             </Col>
             <Col xs={24} xl={8}>
-              <Card className="visual-panel" title="Review Maturity">
+              <Card className="visual-panel" title={t('visualization.reviewMaturity')}>
                 <Space direction="vertical" size={16} style={{ width: '100%' }}>
                   <div>
-                    <Text strong>Manual Review Coverage</Text>
+                    <Text strong>{t('visualization.manualReviewCoverage')}</Text>
                     <Progress percent={manualCoverage} strokeColor="#0f766e" />
                   </div>
                   <div>
-                    <Text strong>Finalized LLM Analysis</Text>
+                    <Text strong>{t('visualization.finalizedLlmAnalysis')}</Text>
                     <Progress percent={finalizedRate} strokeColor="#2563eb" />
                   </div>
                   <div className="maturity-note">
                     <FileSearchOutlined />
-                    <Text>Manual decisions and LLM finalization are separated so reviewers can audit model verdicts independently.</Text>
+                    <Text>{t('visualization.maturityNote')}</Text>
                   </div>
                 </Space>
               </Card>
@@ -578,12 +571,12 @@ export default function TaskVisualizationPage() {
 
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col xs={24} xl={12}>
-              <Card className="visual-panel" title="Top Risk Files">
+              <Card className="visual-panel" title={t('visualization.topRiskFiles')}>
                 <FileRiskChart data={topFiles} />
               </Card>
             </Col>
             <Col xs={24} xl={12}>
-              <Card className="visual-panel" title="Analysis Log Timeline">
+              <Card className="visual-panel" title={t('visualization.analysisLogTimeline')}>
                 <LogTimelineChart data={timelineData} />
               </Card>
             </Col>
@@ -591,7 +584,7 @@ export default function TaskVisualizationPage() {
 
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col xs={24} xl={10}>
-              <Card className="visual-panel" title="Issue Type × Decision Matrix">
+              <Card className="visual-panel" title={t('visualization.issueTypeMatrix')}>
                 <Table
                   size="small"
                   columns={matrixColumns}
@@ -602,7 +595,7 @@ export default function TaskVisualizationPage() {
               </Card>
             </Col>
             <Col xs={24} xl={14}>
-              <Card className="visual-panel" title="Risk-ranked Issue Table">
+              <Card className="visual-panel" title={t('visualization.riskRankedTable')}>
                 <Table
                   className="issue-explorer-table"
                   size="small"
@@ -616,14 +609,14 @@ export default function TaskVisualizationPage() {
             </Col>
           </Row>
 
-          <Card className="visual-panel issue-narrative-panel" title="Issue Narrative Evidence" style={{ marginTop: 16 }}>
+          <Card className="visual-panel issue-narrative-panel" title={t('visualization.issueNarrativeEvidence')} style={{ marginTop: 16 }}>
             <Space direction="vertical" size={18} style={{ width: '100%' }}>
               {records.map((record) => (
                 <div className="issue-narrative-card" key={`${record.issue_type}-${record.id}`}>
                   <Space wrap style={{ marginBottom: 8 }}>
-                    <Tag color={STATUS_COLOR[record.status]}>{STATUS_LABEL[record.status] ?? record.status}</Tag>
+                    <Tag color={STATUS_COLOR[record.status]}>{t('decision.' + record.status)}</Tag>
                     <Tag color={MANUAL_COLORS[record.manualLabel]}>{record.manualLabel}</Tag>
-                    {record.statusCode && <Tag color="geekblue">status {record.statusCode}</Tag>}
+                    {record.statusCode && <Tag color="geekblue">{t('visualization.statusTag', { code: record.statusCode })}</Tag>}
                     <Text strong>Issue #{record.id}</Text>
                     <Text code>{record.file}:{record.line}</Text>
                     <Text code>{record.functionName}</Text>
@@ -639,34 +632,34 @@ export default function TaskVisualizationPage() {
       <div className="pdf-report-stage" aria-hidden="true">
         <div className="pdf-report" ref={reportRef}>
           <div className="pdf-report-header">
-            <Text className="pdf-eyebrow">VulnSeeker Research Report</Text>
-            <Title level={1}>Task #{task.id} Code Analysis Report</Title>
+            <Text className="pdf-eyebrow">{t('visualization.pdfReportTitle')}</Text>
+            <Title level={1}>{t('visualization.pdfReportSubtitle', { id: task.id })}</Title>
             <Paragraph>{sourceText}</Paragraph>
-            <Text type="secondary">Generated at {new Date().toLocaleString()}</Text>
+            <Text type="secondary">{t('visualization.pdfGeneratedAt', { date: new Date().toLocaleString() })}</Text>
           </div>
 
           <Row gutter={[12, 12]} className="pdf-kpi-grid">
-            <Col span={4}><Card><Statistic title="Total" value={total} /></Card></Col>
-            <Col span={4}><Card><Statistic title="TP" value={statusCounts.true ?? 0} /></Card></Col>
-            <Col span={4}><Card><Statistic title="FP" value={statusCounts.false ?? 0} /></Card></Col>
-            <Col span={4}><Card><Statistic title="More" value={statusCounts.more ?? 0} /></Card></Col>
-            <Col span={4}><Card><Statistic title="Manual %" value={manualCoverage} suffix="%" /></Card></Col>
-            <Col span={4}><Card><Statistic title="Final %" value={finalizedRate} suffix="%" /></Card></Col>
+            <Col span={4}><Card><Statistic title={t('visualization.pdfTotal')} value={total} /></Card></Col>
+            <Col span={4}><Card><Statistic title={t('visualization.pdfTP')} value={statusCounts.true ?? 0} /></Card></Col>
+            <Col span={4}><Card><Statistic title={t('visualization.pdfFP')} value={statusCounts.false ?? 0} /></Card></Col>
+            <Col span={4}><Card><Statistic title={t('visualization.pdfMore')} value={statusCounts.more ?? 0} /></Card></Col>
+            <Col span={4}><Card><Statistic title={t('visualization.pdfManualPct')} value={manualCoverage} suffix="%" /></Card></Col>
+            <Col span={4}><Card><Statistic title={t('visualization.pdfFinalPct')} value={finalizedRate} suffix="%" /></Card></Col>
           </Row>
 
           <Row gutter={[16, 16]} style={{ marginTop: 18 }}>
             <Col span={12}>
-              <Card title="LLM Decision Distribution"><StatusPieChart data={statusPieData} /></Card>
+              <Card title={t('visualization.pdfLlmDistribution')}><StatusPieChart data={statusPieData} /></Card>
             </Col>
             <Col span={12}>
-              <Card title="Top Risk Files"><FileRiskChart data={topFiles} /></Card>
+              <Card title={t('visualization.pdfTopRiskFiles')}><FileRiskChart data={topFiles} /></Card>
             </Col>
           </Row>
 
-          <Card title="Risk-ranked Issue Table" style={{ marginTop: 18 }}>
+          <Card title={t('visualization.pdfRiskTable')} style={{ marginTop: 18 }}>
             <Table
               size="small"
-              columns={issueColumns.filter((column) => column.title !== 'Function')}
+              columns={issueColumns.filter((column) => column.title !== t('table.function'))}
               dataSource={records}
               rowKey={(record) => `${record.issue_type}-${record.id}`}
               pagination={false}
@@ -674,13 +667,13 @@ export default function TaskVisualizationPage() {
           </Card>
 
           <Divider />
-          <Title level={2}>Issue-level Analysis Evidence</Title>
+          <Title level={2}>{t('visualization.pdfEvidence')}</Title>
           {records.map((record) => (
             <div className="pdf-issue-block" key={`${record.issue_type}-${record.id}`}>
               <Space wrap style={{ marginBottom: 8 }}>
-                <Tag color={STATUS_COLOR[record.status]}>{STATUS_LABEL[record.status] ?? record.status}</Tag>
+                <Tag color={STATUS_COLOR[record.status]}>{t('decision.' + record.status)}</Tag>
                 <Tag color={MANUAL_COLORS[record.manualLabel]}>{record.manualLabel}</Tag>
-                {record.statusCode && <Tag color="geekblue">status {record.statusCode}</Tag>}
+                {record.statusCode && <Tag color="geekblue">{t('visualization.statusTag', { code: record.statusCode })}</Tag>}
                 <Text strong>Issue #{record.id}</Text>
                 <Text code>{record.issue_type}</Text>
                 <Text code>{record.file}:{record.line}</Text>

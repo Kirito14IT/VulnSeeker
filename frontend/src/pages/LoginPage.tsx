@@ -4,6 +4,7 @@
 
 import { Form, Input, Button, Card, message, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { authApi } from '../api';
 import { useAuthStore } from '../stores/authStore';
 
@@ -13,16 +14,17 @@ export default function LoginPage() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const { t } = useTranslation();
 
   const handleSubmit = async (values: { username: string; password: string }) => {
     try {
       const resp = await authApi.login(values);
       login(resp.access_token, resp.user);
-      message.success(`Welcome back, ${resp.user.username}!`);
+      message.success(t('auth.login.success', { username: resp.user.username }));
       navigate(resp.user.role === 'admin' ? '/admin' : '/');
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
-      message.error(e.response?.data?.detail ?? 'Login failed');
+      message.error(e.response?.data?.detail ?? t('auth.login.failed'));
     }
   };
 
@@ -31,25 +33,25 @@ export default function LoginPage() {
       <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Title level={3}>VulnSeeker</Title>
-          <Text type="secondary">Sign in to your account</Text>
+          <Text type="secondary">{t('auth.login.subtitle')}</Text>
         </div>
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item name="username" label="Username" rules={[{ required: true }]}>
-            <Input placeholder="username" />
+          <Form.Item name="username" label={t('auth.login.username')} rules={[{ required: true }]}>
+            <Input placeholder={t('auth.login.usernamePlaceholder')} />
           </Form.Item>
-          <Form.Item name="password" label="Password" rules={[{ required: true }]}>
-            <Input.Password placeholder="password" />
+          <Form.Item name="password" label={t('auth.login.password')} rules={[{ required: true }]}>
+            <Input.Password placeholder={t('auth.login.passwordPlaceholder')} />
           </Form.Item>
           <Form.Item style={{ marginBottom: 0 }}>
             <Button type="primary" htmlType="submit" block>
-              Sign In
+              {t('auth.login.submit')}
             </Button>
           </Form.Item>
         </Form>
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <Text type="secondary">
-            No account?{' '}
-            <a href="/register">Register here</a>
+            {t('auth.login.noAccount')}{' '}
+            <a href="/register">{t('auth.login.registerLink')}</a>
           </Text>
         </div>
       </Card>

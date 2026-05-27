@@ -7,6 +7,7 @@ import {
   DeleteOutlined, EditOutlined, LogoutOutlined, PlusOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
 
 import { adminApi } from '../api';
@@ -15,15 +16,11 @@ import type { User, TaskWithUser, TaskSource } from '../types';
 import { getTaskPresentation } from '../utils/taskPresentation';
 
 const { Title, Text } = Typography;
-const SOURCE_LABEL: Record<string, string> = {
-  github: 'GitHub DB',
-  local_db: 'Local DB',
-  local_src: 'Local Source',
-};
 
 // ── Users tab ────────────────────────────────────────────────────────────────
 
 function UsersTab({ me }: { me: User | null }) {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -39,7 +36,7 @@ function UsersTab({ me }: { me: User | null }) {
     try {
       const data = await adminApi.listUsers();
       setUsers(data);
-    } catch { message.error('Failed to load users') }
+    } catch { message.error(t('admin.users.loadFailed')) }
     finally { setLoading(false) }
   };
 
@@ -55,13 +52,13 @@ function UsersTab({ me }: { me: User | null }) {
     setSubmitting(true);
     try {
       await adminApi.createUser(values);
-      message.success(`User '${values.username}' created`);
+      message.success(t('admin.users.created', { username: values.username }));
       setCreateOpen(false);
       createForm.resetFields();
       await loadUsers();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
-      message.error(e.response?.data?.detail ?? 'Failed to create user');
+      message.error(e.response?.data?.detail ?? t('admin.users.createFailed'));
     } finally { setSubmitting(false) }
   };
 
@@ -77,43 +74,43 @@ function UsersTab({ me }: { me: User | null }) {
       const payload: Record<string, string> = { username: values.username, email: values.email, role: values.role };
       if (values.password) payload.password = values.password;
       await adminApi.updateUser(editUser.id, payload);
-      message.success('User updated');
+      message.success(t('admin.users.updated'));
       setEditUser(null);
       editForm.resetFields();
       await loadUsers();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
-      message.error(e.response?.data?.detail ?? 'Failed to update user');
+      message.error(e.response?.data?.detail ?? t('admin.users.updateFailed'));
     } finally { setSubmitting(false) }
   };
 
   const handleDelete = async (id: number, username: string) => {
     try {
       await adminApi.deleteUser(id);
-      message.success(`User '${username}' deleted`);
+      message.success(t('admin.users.deleted', { username }));
       await loadUsers();
-    } catch { message.error('Failed to delete user') }
+    } catch { message.error(t('admin.users.deleteFailed')) }
   };
 
   const columns: ColumnsType<User> = [
-    { title: 'ID', dataIndex: 'id', width: 70 },
-    { title: 'Username', dataIndex: 'username', width: 160 },
-    { title: 'Email', dataIndex: 'email', width: 240 },
+    { title: t('table.id'), dataIndex: 'id', width: 70 },
+    { title: t('table.username'), dataIndex: 'username', width: 160 },
+    { title: t('table.email'), dataIndex: 'email', width: 240 },
     {
-      title: 'Role', dataIndex: 'role', width: 100,
+      title: t('table.role'), dataIndex: 'role', width: 100,
       render: (role: string) => <Tag color={role === 'admin' ? 'red' : 'blue'}>{role}</Tag>,
     },
     {
-      title: 'Created', dataIndex: 'created_at', width: 180,
+      title: t('table.created'), dataIndex: 'created_at', width: 180,
       render: (v: string) => new Date(v).toLocaleString(),
     },
     {
-      title: 'Actions', width: 140,
+      title: t('table.actions'), width: 140,
       render: (_, record) => (
         <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>Edit</Button>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>{t('common.edit')}</Button>
           {record.id !== me?.id && (
-            <Popconfirm title="Delete this user?" onConfirm={() => handleDelete(record.id, record.username)}>
+            <Popconfirm title={t('admin.users.deleteConfirm')} onConfirm={() => handleDelete(record.id, record.username)}>
               <Button danger size="small" icon={<DeleteOutlined />} />
             </Popconfirm>
           )}
@@ -128,19 +125,19 @@ function UsersTab({ me }: { me: User | null }) {
         extra={
           <Space wrap>
             <Input.Search
-              placeholder="Search by username..."
+              placeholder={t('admin.users.searchPlaceholder')}
               allowClear
               onSearch={setSearchText}
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 200 }}
             />
-            <Select placeholder="All roles" allowClear style={{ width: 120 }}
+            <Select placeholder={t('admin.users.allRoles')} allowClear style={{ width: 120 }}
               onChange={(v) => setRoleFilter(v ?? null)}>
-              <Select.Option value="user">user</Select.Option>
-              <Select.Option value="admin">admin</Select.Option>
+              <Select.Option value="user">{t('admin.users.roleUser')}</Select.Option>
+              <Select.Option value="admin">{t('admin.users.roleAdmin')}</Select.Option>
             </Select>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              Create User
+              {t('admin.users.createUser')}
             </Button>
           </Space>
         }
@@ -150,28 +147,28 @@ function UsersTab({ me }: { me: User | null }) {
           pagination={{ pageSize: 12, showSizeChanger: false, hideOnSinglePage: true }} />
       </Card>
 
-      <Modal title="Create User" open={createOpen}
+      <Modal title={t('admin.users.createUser')} open={createOpen}
         onCancel={() => { setCreateOpen(false); createForm.resetFields(); }}
         onOk={() => createForm.submit()} confirmLoading={submitting}>
         <Form form={createForm} layout="vertical" onFinish={handleCreate} initialValues={{ role: 'user' }}>
-          <Form.Item name="username" label="Username" rules={[{ required: true, min: 3 }]}><Input /></Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
-          <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}><Input.Password /></Form.Item>
-          <Form.Item name="role" label="Role">
-            <Select><Select.Option value="user">user</Select.Option><Select.Option value="admin">admin</Select.Option></Select>
+          <Form.Item name="username" label={t('admin.form.username')} rules={[{ required: true, min: 3 }]}><Input /></Form.Item>
+          <Form.Item name="email" label={t('admin.form.email')} rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
+          <Form.Item name="password" label={t('admin.form.password')} rules={[{ required: true, min: 6 }]}><Input.Password /></Form.Item>
+          <Form.Item name="role" label={t('admin.form.role')}>
+            <Select><Select.Option value="user">{t('admin.users.roleUser')}</Select.Option><Select.Option value="admin">{t('admin.users.roleAdmin')}</Select.Option></Select>
           </Form.Item>
         </Form>
       </Modal>
 
-      <Modal title={`Edit User: ${editUser?.username}`} open={!!editUser}
+      <Modal title={t('admin.users.editUser', { username: editUser?.username })} open={!!editUser}
         onCancel={() => { setEditUser(null); editForm.resetFields(); }}
         onOk={() => editForm.submit()} confirmLoading={submitting}>
         <Form form={editForm} layout="vertical" onFinish={handleEdit}>
-          <Form.Item name="username" label="Username" rules={[{ required: true, min: 3 }]}><Input /></Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
-          <Form.Item name="password" label="New Password (leave blank to keep)"><Input.Password /></Form.Item>
-          <Form.Item name="role" label="Role">
-            <Select><Select.Option value="user">user</Select.Option><Select.Option value="admin">admin</Select.Option></Select>
+          <Form.Item name="username" label={t('admin.form.username')} rules={[{ required: true, min: 3 }]}><Input /></Form.Item>
+          <Form.Item name="email" label={t('admin.form.email')} rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
+          <Form.Item name="password" label={t('admin.form.newPassword')}><Input.Password /></Form.Item>
+          <Form.Item name="role" label={t('admin.form.role')}>
+            <Select><Select.Option value="user">{t('admin.users.roleUser')}</Select.Option><Select.Option value="admin">{t('admin.users.roleAdmin')}</Select.Option></Select>
           </Form.Item>
         </Form>
       </Modal>
@@ -182,6 +179,7 @@ function UsersTab({ me }: { me: User | null }) {
 // ── Tasks tab ────────────────────────────────────────────────────────────────
 
 function TasksTab() {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<TaskWithUser[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -199,7 +197,7 @@ function TasksTab() {
       const [taskData, userData] = await Promise.all([adminApi.listTasks(), adminApi.listUsers()]);
       setTasks(taskData);
       setUsers(userData);
-    } catch { message.error('Failed to load tasks') }
+    } catch { message.error(t('admin.tasks.loadFailed')) }
     finally { setLoading(false) }
   };
 
@@ -219,13 +217,13 @@ function TasksTab() {
     setSubmitting(true);
     try {
       await adminApi.createTask({ ...values, source_type: values.source_type as TaskSource });
-      message.success('Task created');
+      message.success(t('admin.tasks.created'));
       setCreateOpen(false);
       createForm.resetFields();
       await loadTasks();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
-      message.error(e.response?.data?.detail ?? 'Failed to create task');
+      message.error(e.response?.data?.detail ?? t('admin.tasks.createFailed'));
     } finally { setSubmitting(false) }
   };
 
@@ -246,13 +244,13 @@ function TasksTab() {
     setSubmitting(true);
     try {
       await adminApi.updateTask(editTask.id, { ...values, source_type: values.source_type as TaskSource });
-      message.success('Task updated');
+      message.success(t('admin.tasks.updated'));
       setEditTask(null);
       editForm.resetFields();
       await loadTasks();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
-      message.error(e.response?.data?.detail ?? 'Failed to update task');
+      message.error(e.response?.data?.detail ?? t('admin.tasks.updateFailed'));
     } finally { setSubmitting(false) }
   };
 
@@ -260,40 +258,40 @@ function TasksTab() {
   const handleDelete = async (id: number) => {
     try {
       await adminApi.deleteTask(id);
-      message.success('Task deleted');
+      message.success(t('admin.tasks.deleted'));
       await loadTasks();
-    } catch { message.error('Failed to delete task') }
+    } catch { message.error(t('admin.tasks.deleteFailed')) }
   };
 
   const columns: ColumnsType<TaskWithUser> = [
-    { title: 'ID', dataIndex: 'id', width: 60 },
-    { title: 'User', dataIndex: 'username', width: 120 },
+    { title: t('table.id'), dataIndex: 'id', width: 60 },
+    { title: t('table.user'), dataIndex: 'username', width: 120 },
     {
-      title: 'Target', dataIndex: 'repo_url', ellipsis: true,
+      title: t('table.target'), dataIndex: 'repo_url', ellipsis: true,
       render: (v: string) => <Text code>{v}</Text>,
     },
     {
-      title: 'Source', dataIndex: 'source_type', width: 110,
-      render: (v: string) => <Tag>{SOURCE_LABEL[v] ?? v}</Tag>,
+      title: t('table.source'), dataIndex: 'source_type', width: 110,
+      render: (v: string) => <Tag>{t(`source.${v}`)}</Tag>,
     },
-    { title: 'Language', dataIndex: 'language', width: 100 },
+    { title: t('table.language'), dataIndex: 'language', width: 100 },
     {
-      title: 'Status', dataIndex: 'status', width: 110,
+      title: t('table.status'), dataIndex: 'status', width: 110,
       render: (_: string, record: TaskWithUser) => {
         const p = getTaskPresentation(record);
-        return <Tag color={p.color}>{p.statusLabel}</Tag>;
+        return <Tag color={p.color}>{t(`status.${p.statusLabelKey}`)}</Tag>;
       },
     },
     {
-      title: 'Created', dataIndex: 'created_at', width: 170,
+      title: t('table.created'), dataIndex: 'created_at', width: 170,
       render: (v: string) => new Date(v).toLocaleString(),
     },
     {
-      title: 'Actions', width: 130,
+      title: t('table.actions'), width: 130,
       render: (_, record) => (
         <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>Edit</Button>
-          <Popconfirm title="Delete this task?" onConfirm={() => handleDelete(record.id)}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>{t('common.edit')}</Button>
+          <Popconfirm title={t('admin.tasks.deleteConfirm')} onConfirm={() => handleDelete(record.id)}>
             <Button danger size="small" icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -307,21 +305,21 @@ function TasksTab() {
         extra={
           <Space wrap>
             <Input.Search
-              placeholder="Search repo or user..."
+              placeholder={t('admin.tasks.searchPlaceholder')}
               allowClear
               onSearch={setSearchText}
               onChange={(e) => setSearchText(e.target.value)}
               style={{ width: 220 }}
             />
-            <Select placeholder="All statuses" allowClear style={{ width: 130 }}
+            <Select placeholder={t('admin.tasks.allStatuses')} allowClear style={{ width: 130 }}
               onChange={(v) => setStatusFilter(v ?? null)}>
-              <Select.Option value="pending">pending</Select.Option>
-              <Select.Option value="running">running</Select.Option>
-              <Select.Option value="completed">completed</Select.Option>
-              <Select.Option value="failed">failed</Select.Option>
+              <Select.Option value="pending">{t('admin.tasks.statusPending')}</Select.Option>
+              <Select.Option value="running">{t('admin.tasks.statusRunning')}</Select.Option>
+              <Select.Option value="completed">{t('admin.tasks.statusCompleted')}</Select.Option>
+              <Select.Option value="failed">{t('admin.tasks.statusFailed')}</Select.Option>
             </Select>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              Create Task
+              {t('admin.tasks.createTask')}
             </Button>
           </Space>
         }
@@ -332,82 +330,82 @@ function TasksTab() {
       </Card>
 
       {/* Create task modal */}
-      <Modal title="Create Task" open={createOpen}
+      <Modal title={t('admin.tasks.createTask')} open={createOpen}
         onCancel={() => { setCreateOpen(false); createForm.resetFields(); }}
         onOk={() => createForm.submit()} confirmLoading={submitting}>
         <Form form={createForm} layout="vertical" onFinish={handleCreate} initialValues={{ source_type: 'github', language: 'cpp' }}>
-          <Form.Item name="user_id" label="User" rules={[{ required: true }]}>
-            <Select showSearch placeholder="Select user" optionFilterProp="children">
+          <Form.Item name="user_id" label={t('admin.form.user')} rules={[{ required: true }]}>
+            <Select showSearch placeholder={t('admin.tasks.selectUser')} optionFilterProp="children">
               {users.map((u) => (
                 <Select.Option key={u.id} value={u.id}>{u.username} ({u.id})</Select.Option>
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="repo_url" label="Repo URL" rules={[{ required: true }]}>
-            <Input placeholder="org/repo or full GitHub URL" />
+          <Form.Item name="repo_url" label={t('admin.form.repoUrl')} rules={[{ required: true }]}>
+            <Input placeholder={t('admin.tasks.repoPlaceholder')} />
           </Form.Item>
-          <Form.Item name="language" label="Language">
+          <Form.Item name="language" label={t('admin.form.language')}>
             <Select>
-              <Select.Option value="cpp">C/C++</Select.Option>
-              <Select.Option value="java">Java/Kotlin</Select.Option>
-              <Select.Option value="python">Python</Select.Option>
-              <Select.Option value="javascript">JavaScript/TypeScript</Select.Option>
-              <Select.Option value="go">Go</Select.Option>
-              <Select.Option value="ruby">Ruby</Select.Option>
-              <Select.Option value="csharp">C#</Select.Option>
-              <Select.Option value="swift">Swift</Select.Option>
+              <Select.Option value="cpp">{t('newTask.lang.cpp')}</Select.Option>
+              <Select.Option value="java">{t('newTask.lang.java')}</Select.Option>
+              <Select.Option value="python">{t('newTask.lang.python')}</Select.Option>
+              <Select.Option value="javascript">{t('newTask.lang.javascript')}</Select.Option>
+              <Select.Option value="go">{t('newTask.lang.go')}</Select.Option>
+              <Select.Option value="ruby">{t('newTask.lang.ruby')}</Select.Option>
+              <Select.Option value="csharp">{t('newTask.lang.csharp')}</Select.Option>
+              <Select.Option value="swift">{t('newTask.lang.swift')}</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="source_type" label="Source Type">
+          <Form.Item name="source_type" label={t('admin.form.sourceType')}>
             <Select>
-              <Select.Option value="github">GitHub DB</Select.Option>
-              <Select.Option value="local_db">Local DB</Select.Option>
-              <Select.Option value="local_src">Local Source</Select.Option>
+              <Select.Option value="github">{t('source.github')}</Select.Option>
+              <Select.Option value="local_db">{t('source.local_db')}</Select.Option>
+              <Select.Option value="local_src">{t('source.local_src')}</Select.Option>
             </Select>
           </Form.Item>
         </Form>
       </Modal>
 
       {/* Edit task modal */}
-      <Modal title={`Edit Task #${editTask?.id}`} open={!!editTask}
+      <Modal title={t('admin.tasks.editTask', { id: editTask?.id })} open={!!editTask}
         onCancel={() => { setEditTask(null); editForm.resetFields(); }}
         onOk={() => editForm.submit()} confirmLoading={submitting}>
         <Form form={editForm} layout="vertical" onFinish={handleEdit}>
-          <Form.Item name="user_id" label="User" rules={[{ required: true }]}>
+          <Form.Item name="user_id" label={t('admin.form.user')} rules={[{ required: true }]}>
             <Select showSearch optionFilterProp="children">
               {users.map((u) => (
                 <Select.Option key={u.id} value={u.id}>{u.username} ({u.id})</Select.Option>
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="repo_url" label="Repo URL" rules={[{ required: true }]}>
+          <Form.Item name="repo_url" label={t('admin.form.repoUrl')} rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="language" label="Language">
+          <Form.Item name="language" label={t('admin.form.language')}>
             <Select>
-              <Select.Option value="cpp">C/C++</Select.Option>
-              <Select.Option value="java">Java/Kotlin</Select.Option>
-              <Select.Option value="python">Python</Select.Option>
-              <Select.Option value="javascript">JavaScript/TypeScript</Select.Option>
-              <Select.Option value="go">Go</Select.Option>
-              <Select.Option value="ruby">Ruby</Select.Option>
-              <Select.Option value="csharp">C#</Select.Option>
-              <Select.Option value="swift">Swift</Select.Option>
+              <Select.Option value="cpp">{t('newTask.lang.cpp')}</Select.Option>
+              <Select.Option value="java">{t('newTask.lang.java')}</Select.Option>
+              <Select.Option value="python">{t('newTask.lang.python')}</Select.Option>
+              <Select.Option value="javascript">{t('newTask.lang.javascript')}</Select.Option>
+              <Select.Option value="go">{t('newTask.lang.go')}</Select.Option>
+              <Select.Option value="ruby">{t('newTask.lang.ruby')}</Select.Option>
+              <Select.Option value="csharp">{t('newTask.lang.csharp')}</Select.Option>
+              <Select.Option value="swift">{t('newTask.lang.swift')}</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="source_type" label="Source Type">
+          <Form.Item name="source_type" label={t('admin.form.sourceType')}>
             <Select>
-              <Select.Option value="github">GitHub DB</Select.Option>
-              <Select.Option value="local_db">Local DB</Select.Option>
-              <Select.Option value="local_src">Local Source</Select.Option>
+              <Select.Option value="github">{t('source.github')}</Select.Option>
+              <Select.Option value="local_db">{t('source.local_db')}</Select.Option>
+              <Select.Option value="local_src">{t('source.local_src')}</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item name="status" label="Status">
+          <Form.Item name="status" label={t('admin.form.status')}>
             <Select>
-              <Select.Option value="pending">pending</Select.Option>
-              <Select.Option value="running">running</Select.Option>
-              <Select.Option value="completed">completed</Select.Option>
-              <Select.Option value="failed">failed</Select.Option>
+              <Select.Option value="pending">{t('admin.tasks.statusPending')}</Select.Option>
+              <Select.Option value="running">{t('admin.tasks.statusRunning')}</Select.Option>
+              <Select.Option value="completed">{t('admin.tasks.statusCompleted')}</Select.Option>
+              <Select.Option value="failed">{t('admin.tasks.statusFailed')}</Select.Option>
             </Select>
           </Form.Item>
         </Form>
@@ -419,6 +417,7 @@ function TasksTab() {
 // ── Tools tab ────────────────────────────────────────────────────────────────
 
 function ToolsTab() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -430,9 +429,9 @@ function ToolsTab() {
           style={{ borderRadius: 24, minHeight: 150 }}
         >
           <Space direction="vertical" size={8}>
-            <Tag color="cyan">CLI Helpers</Tag>
-            <Title level={4} style={{ margin: 0 }}>Stats & Validation</Title>
-            <Text type="secondary">Use the web equivalents of `vulnseeker-validate`.</Text>
+            <Tag color="cyan">{t('admin.tools.cliHelpers')}</Tag>
+            <Title level={4} style={{ margin: 0 }}>{t('admin.tools.statsValidation')}</Title>
+            <Text type="secondary">{t('admin.tools.statsValidationDesc')}</Text>
           </Space>
         </Card>
       </Col>
@@ -443,6 +442,7 @@ function ToolsTab() {
 // ── Main AdminPage ───────────────────────────────────────────────────────────
 
 export default function AdminPage() {
+  const { t } = useTranslation();
   const { user: me, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -461,13 +461,13 @@ export default function AdminPage() {
       >
         <Row justify="space-between" align="middle">
           <Col>
-            <Title level={2} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>Admin Dashboard</Title>
-            <Text type="secondary">User & task management panel</Text>
+            <Title level={2} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>{t('admin.title')}</Title>
+            <Text type="secondary">{t('admin.subtitle')}</Text>
           </Col>
           <Col>
             <Space>
-              <Text type="secondary">{me?.username} (admin)</Text>
-              <Button icon={<LogoutOutlined />} onClick={handleLogout}>Logout</Button>
+              <Text type="secondary">{t('admin.signedInAs', { username: me?.username })}</Text>
+              <Button icon={<LogoutOutlined />} onClick={handleLogout}>{t('admin.logout')}</Button>
             </Space>
           </Col>
         </Row>
@@ -476,9 +476,9 @@ export default function AdminPage() {
       {/* Tabs */}
       <Tabs
         items={[
-          { key: 'users', label: 'Users', children: <UsersTab me={me} /> },
-          { key: 'tasks', label: 'Tasks', children: <TasksTab /> },
-          { key: 'tools', label: 'Tools', children: <ToolsTab /> },
+          { key: 'users', label: t('admin.tabs.users'), children: <UsersTab me={me} /> },
+          { key: 'tasks', label: t('admin.tabs.tasks'), children: <TasksTab /> },
+          { key: 'tools', label: t('admin.tabs.tools'), children: <ToolsTab /> },
         ]}
       />
     </div>

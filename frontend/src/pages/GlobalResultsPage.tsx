@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Button, Card, Space, Typography, message } from 'antd';
 import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { legacyApi } from '../api';
 import IssueExplorer from '../components/IssueExplorer';
@@ -13,6 +14,7 @@ const { Title, Paragraph } = Typography;
 
 export default function GlobalResultsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [issues, setIssues] = useState<IssueSummary[]>([]);
   const [selectedIssue, setSelectedIssue] = useState<IssueSummary | null>(null);
   const [issueDetail, setIssueDetail] = useState<IssueDetail | null>(null);
@@ -25,7 +27,7 @@ export default function GlobalResultsPage() {
       const data = await legacyApi.listIssues();
       setIssues(data);
     } catch {
-      message.error('Failed to load legacy results');
+      message.error(t('globalResults.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -38,7 +40,7 @@ export default function GlobalResultsPage() {
       const detail = await legacyApi.getIssue(issue.id);
       setIssueDetail(detail);
     } catch {
-      message.error('Failed to load issue detail');
+      message.error(t('globalResults.detailLoadFailed'));
     } finally {
       setDetailLoading(false);
     }
@@ -56,9 +58,9 @@ export default function GlobalResultsPage() {
       setIssueDetail((previous) => (
         previous && previous.id === issueId ? { ...previous, manual_decision: decision } : previous
       ));
-      message.success(decision ? 'Decision saved' : 'Decision cleared');
+      message.success(decision ? t('globalResults.decisionSaved') : t('globalResults.decisionCleared'));
     } catch {
-      message.error('Failed to save decision');
+      message.error(t('globalResults.decisionSaveFailed'));
     }
   }, []);
 
@@ -79,17 +81,17 @@ export default function GlobalResultsPage() {
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
-              Back
+              {t('globalResults.back')}
             </Button>
             <Button icon={<ReloadOutlined />} onClick={() => void loadIssues()}>
-              Reload
+              {t('globalResults.reload')}
             </Button>
           </Space>
           <Title level={3} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>
-            Legacy Global Results
+            {t('globalResults.title')}
           </Title>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Web version of the old `vulnseeker-ui` browser, backed by the shared root `output/results`.
+            {t('globalResults.description')}
           </Paragraph>
         </Space>
       </Card>

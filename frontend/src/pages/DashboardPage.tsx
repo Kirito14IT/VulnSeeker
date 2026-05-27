@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button, Card, Col, Popconfirm, Row, Space, Table, Tag, Typography, message } from 'antd';
 import { DeleteOutlined, PlayCircleOutlined, PlusOutlined, ReadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
 
 import { tasksApi } from '../api';
@@ -11,18 +12,13 @@ import { getTaskPresentation } from '../utils/taskPresentation';
 
 
 const { Title, Paragraph, Text } = Typography;
-const SOURCE_LABEL: Record<string, string> = {
-  github: 'GitHub DB',
-  local_db: 'Local DB',
-  local_src: 'Local Source',
-};
-
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { t } = useTranslation();
 
   const loadTasks = async () => {
     setLoading(true);
@@ -30,7 +26,7 @@ export default function DashboardPage() {
       const data = await tasksApi.list();
       setTasks(data);
     } catch {
-      message.error('Failed to load tasks');
+      message.error(t('dashboard.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -44,70 +40,70 @@ export default function DashboardPage() {
     try {
       await tasksApi.delete(id);
       setTasks((previous) => previous.filter((task) => task.id !== id));
-      message.success('Task deleted');
+      message.success(t('dashboard.deleteSuccess'));
     } catch (error: unknown) {
       const response = error as { response?: { data?: { detail?: string } } };
-      message.error(response.response?.data?.detail ?? 'Failed to delete task');
+      message.error(response.response?.data?.detail ?? t('dashboard.deleteFailed'));
     }
   };
 
   const handleStart = async (task: Task) => {
     try {
       await tasksApi.start(task.id);
-      message.success('Analysis started');
+      message.success(t('dashboard.startSuccess'));
       navigate(`/tasks/${task.id}`);
     } catch (error: unknown) {
       const response = error as { response?: { data?: { detail?: string } } };
-      message.error(response.response?.data?.detail ?? 'Failed to start task');
+      message.error(response.response?.data?.detail ?? t('dashboard.startFailed'));
     }
   };
 
   const columns: ColumnsType<Task> = [
     {
-      title: 'ID',
+      title: t('table.id'),
       dataIndex: 'id',
       width: 70,
     },
     {
-      title: 'Source',
+      title: t('table.source'),
       width: 150,
-      render: (_, record) => <Tag>{SOURCE_LABEL[record.source_type] ?? record.source_type}</Tag>,
+      render: (_, record) => <Tag>{t(`source.${record.source_type}`)}</Tag>,
     },
     {
-      title: 'Target',
+      title: t('table.target'),
       dataIndex: 'repo_url',
       render: (value) => <Text code>{value}</Text>,
     },
     {
-      title: 'Status',
+      title: t('table.status'),
       dataIndex: 'status',
       width: 120,
       render: (_value: string, record) => {
         const presentation = getTaskPresentation(record);
-        return <Tag color={presentation.color}>{presentation.statusLabel}</Tag>;
+        return <Tag color={presentation.color}>{t(`status.${presentation.statusLabelKey}`)}</Tag>;
       },
     },
     {
-      title: 'Created',
+      title: t('table.created'),
       dataIndex: 'created_at',
       width: 190,
       render: (value) => new Date(value).toLocaleString(),
     },
     {
-      title: 'Actions',
+      title: t('table.actions'),
       width: 210,
       render: (_, record) => (
         <Space>
           {record.status === 'pending' || record.status === 'failed' ? (
             <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => handleStart(record)}>
-              {record.status === 'failed' ? 'Retry' : 'Run'}
+              {record.status === 'failed' ? t('dashboard.retry') : t('dashboard.run')}
             </Button>
           ) : (
             <Button size="small" onClick={() => navigate(`/tasks/${record.id}`)}>
-              Open
+              {t('dashboard.open')}
             </Button>
           )}
-          <Popconfirm title="Delete this task?" onConfirm={() => handleDelete(record.id)}>
+          <Popconfirm title={t('dashboard.deleteConfirm')} onConfirm={() => handleDelete(record.id)}>
             <Button danger size="small" icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -130,15 +126,14 @@ export default function DashboardPage() {
         <Row justify="space-between" gutter={[16, 16]} align="middle">
           <Col xs={24} lg={14}>
             <Title level={2} style={{ marginBottom: 8, fontFamily: 'Georgia, serif' }}>
-              VulnSeeker Web Console
+              {t('dashboard.title')}
             </Title>
             <Paragraph type="secondary" style={{ maxWidth: 720, marginBottom: 16 }}>
-              Unified access to the legacy VulnSeeker pipeline: create isolated web tasks,
-              browse legacy disk results, inspect repo-level statistics, and validate runtime configuration.
+              {t('dashboard.description')}
             </Paragraph>
             <Space direction="vertical" size={8} style={{ maxWidth: 420 }}>
               <Tag color="magenta" style={{ width: 'fit-content', marginInlineEnd: 0 }}>
-                Research Track
+                {t('dashboard.researchTag')}
               </Tag>
               <Button
                 icon={<ReadOutlined />}
@@ -146,17 +141,17 @@ export default function DashboardPage() {
                 onClick={() => navigate('/research/secure-coding-eval')}
                 style={{ width: 'fit-content' }}
               >
-                Open Secure Coding LLM Eval
+                {t('dashboard.evalButton')}
               </Button>
               <Text type="secondary">
-                Evaluating large language models for secure coding.
+                {t('dashboard.evalDescription')}
               </Text>
             </Space>
           </Col>
           <Col>
             <Space wrap>
-              <Text type="secondary">Signed in as {user?.username}</Text>
-              <Button onClick={logout}>Logout</Button>
+              <Text type="secondary">{t('dashboard.signedInAs', { username: user?.username })}</Text>
+              <Button onClick={logout}>{t('common.logout')}</Button>
             </Space>
           </Col>
         </Row>
@@ -170,9 +165,9 @@ export default function DashboardPage() {
             style={{ borderRadius: 24, minHeight: 150 }}
           >
             <Space direction="vertical" size={8}>
-              <Tag color="blue">Run Analysis</Tag>
-              <Title level={4} style={{ margin: 0 }}>Create New Task</Title>
-              <Text type="secondary">GitHub DB, existing CodeQL DB, and local source tree modes are all supported.</Text>
+              <Tag color="blue">{t('dashboard.runAnalysis')}</Tag>
+              <Title level={4} style={{ margin: 0 }}>{t('dashboard.cardCreateTask')}</Title>
+              <Text type="secondary">{t('dashboard.cardCreateDesc')}</Text>
             </Space>
           </Card>
         </Col>
@@ -183,21 +178,21 @@ export default function DashboardPage() {
             style={{ borderRadius: 24, minHeight: 150 }}
           >
             <Space direction="vertical" size={8}>
-              <Tag color="geekblue">Legacy UI</Tag>
-              <Title level={4} style={{ margin: 0 }}>Global Results Browser</Title>
-              <Text type="secondary">Browse the shared root `output/results` view.</Text>
+              <Tag color="geekblue">{t('dashboard.legacyUi')}</Tag>
+              <Title level={4} style={{ margin: 0 }}>{t('dashboard.cardGlobalResults')}</Title>
+              <Text type="secondary">{t('dashboard.cardGlobalDesc')}</Text>
             </Space>
           </Card>
         </Col>
       </Row>
 
       <Card
-        title="Task History"
+        title={t('dashboard.taskHistory')}
         extra={
           <Space>
-            <Button onClick={() => void loadTasks()}>Refresh</Button>
+            <Button onClick={() => void loadTasks()}>{t('common.refresh')}</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/tasks/new')}>
-              New Task
+              {t('dashboard.newTask')}
             </Button>
           </Space>
         }
