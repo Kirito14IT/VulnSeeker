@@ -93,15 +93,12 @@
   },
   "dashboard": {
     "title": "VulnSeeker Web Console",
-    "description": "Unified access to the legacy VulnSeeker pipeline: create isolated web tasks, browse legacy disk results, inspect repo-level statistics, and validate runtime configuration.",
-    "researchTag": "Research Track",
-    "evalButton": "Open Secure Coding LLM Eval",
-    "evalDescription": "Evaluating large language models for secure coding.",
+    "description": "Unified access to the VulnSeeker pipeline: create isolated web tasks, browse disk results, inspect repo-level statistics, and validate runtime configuration.",
     "signedInAs": "Signed in as {{username}}",
     "runAnalysis": "Run Analysis",
     "cardCreateTask": "Create New Task",
     "cardCreateDesc": "GitHub DB, existing CodeQL DB, and local source tree modes are all supported.",
-    "legacyUi": "Legacy UI",
+    "legacyUi": "Results",
     "cardGlobalResults": "Global Results Browser",
     "cardGlobalDesc": "Browse the shared root `output/results` view.",
     "taskHistory": "Task History",
@@ -249,11 +246,11 @@
     "codeContext": "Code Context"
   },
   "globalResults": {
-    "title": "Legacy Global Results",
-    "description": "Web version of the old `vulnseeker-ui` browser, backed by the shared root `output/results`.",
+    "title": "Global Results",
+    "description": "Web version of the `vulnseeker-ui` browser, backed by the shared root `output/results`.",
     "back": "Back",
     "reload": "Reload",
-    "loadFailed": "Failed to load legacy results",
+    "loadFailed": "Failed to load results",
     "detailLoadFailed": "Failed to load issue detail",
     "decisionSaved": "Decision saved",
     "decisionCleared": "Decision cleared",
@@ -283,11 +280,6 @@
     "loadFailed": "Failed to load legacy helper data",
     "depsFetched": "CodeQL dependencies fetched successfully.",
     "depsFetchFailed": "Failed to fetch CodeQL dependencies"
-  },
-  "secureCoding": {
-    "title": "Secure Coding LLM Evaluation",
-    "description": "Evaluating large language models for secure coding.",
-    "back": "Back"
   },
   "admin": {
     "title": "Admin Dashboard",

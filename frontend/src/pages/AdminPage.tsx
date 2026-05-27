@@ -425,7 +425,7 @@ function ToolsTab() {
       <Col xs={24} md={8}>
         <Card
           hoverable
-          onClick={() => navigate('/legacy/stats')}
+          onClick={() => navigate('/result/stats')}
           style={{ borderRadius: 24, minHeight: 150 }}
         >
           <Space direction="vertical" size={8}>

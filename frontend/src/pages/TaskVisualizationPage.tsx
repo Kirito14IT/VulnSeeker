@@ -58,6 +58,13 @@ const STATUS_COLOR: Record<string, string> = {
   raw: '#38bdf8',
 };
 
+const STATUS_TO_KEY: Record<string, string> = {
+  true: 'truePositive',
+  false: 'falsePositive',
+  more: 'needsMoreData',
+  raw: 'rawMatch',
+};
+
 const MANUAL_COLORS: Record<string, string> = {
   'True Positive': '#16a34a',
   'False Positive': '#dc2626',
@@ -325,7 +332,7 @@ export default function TaskVisualizationPage() {
 
   const statusPieData = useMemo<ChartDatum[]>(() => (
     DECISION_KEYS
-      .map((key) => ({ name: t('decision.' + key), value: statusCounts[key] ?? 0, statusKey: key }))
+      .map((key) => ({ name: t('decision.' + STATUS_TO_KEY[key]), value: statusCounts[key] ?? 0, statusKey: key }))
       .filter((item) => item.value > 0)
   ), [statusCounts, t]);
 
@@ -390,7 +397,7 @@ export default function TaskVisualizationPage() {
       title: t('table.llmDecision'),
       dataIndex: 'status',
       width: 145,
-      render: (status: string) => <Tag color={STATUS_COLOR[status]}>{t('decision.' + status)}</Tag>,
+      render: (status: string) => <Tag color={STATUS_COLOR[status]}>{t('decision.' + STATUS_TO_KEY[status])}</Tag>,
     },
     {
       title: t('table.manual'),
@@ -614,7 +621,7 @@ export default function TaskVisualizationPage() {
               {records.map((record) => (
                 <div className="issue-narrative-card" key={`${record.issue_type}-${record.id}`}>
                   <Space wrap style={{ marginBottom: 8 }}>
-                    <Tag color={STATUS_COLOR[record.status]}>{t('decision.' + record.status)}</Tag>
+                    <Tag color={STATUS_COLOR[record.status]}>{t('decision.' + STATUS_TO_KEY[record.status])}</Tag>
                     <Tag color={MANUAL_COLORS[record.manualLabel]}>{record.manualLabel}</Tag>
                     {record.statusCode && <Tag color="geekblue">{t('visualization.statusTag', { code: record.statusCode })}</Tag>}
                     <Text strong>Issue #{record.id}</Text>
@@ -671,7 +678,7 @@ export default function TaskVisualizationPage() {
           {records.map((record) => (
             <div className="pdf-issue-block" key={`${record.issue_type}-${record.id}`}>
               <Space wrap style={{ marginBottom: 8 }}>
-                <Tag color={STATUS_COLOR[record.status]}>{t('decision.' + record.status)}</Tag>
+                <Tag color={STATUS_COLOR[record.status]}>{t('decision.' + STATUS_TO_KEY[record.status])}</Tag>
                 <Tag color={MANUAL_COLORS[record.manualLabel]}>{record.manualLabel}</Tag>
                 {record.statusCode && <Tag color="geekblue">{t('visualization.statusTag', { code: record.statusCode })}</Tag>}
                 <Text strong>Issue #{record.id}</Text>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Col, Popconfirm, Row, Space, Table, Tag, Typography, message } from 'antd';
-import { DeleteOutlined, PlayCircleOutlined, PlusOutlined, ReadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, PlayCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
@@ -131,26 +131,12 @@ export default function DashboardPage() {
             <Paragraph type="secondary" style={{ maxWidth: 720, marginBottom: 16 }}>
               {t('dashboard.description')}
             </Paragraph>
-            <Space direction="vertical" size={8} style={{ maxWidth: 420 }}>
-              <Tag color="magenta" style={{ width: 'fit-content', marginInlineEnd: 0 }}>
-                {t('dashboard.researchTag')}
-              </Tag>
-              <Button
-                icon={<ReadOutlined />}
-                size="large"
-                onClick={() => navigate('/research/secure-coding-eval')}
-                style={{ width: 'fit-content' }}
-              >
-                {t('dashboard.evalButton')}
-              </Button>
-              <Text type="secondary">
-                {t('dashboard.evalDescription')}
-              </Text>
-            </Space>
           </Col>
           <Col>
             <Space wrap>
-              <Text type="secondary">{t('dashboard.signedInAs', { username: user?.username })}</Text>
+              <Text type="secondary">
+                {t('dashboard.signedInAs', { username: user?.username })}
+              </Text>
               <Button onClick={logout}>{t('common.logout')}</Button>
             </Space>
           </Col>
@@ -174,7 +160,7 @@ export default function DashboardPage() {
         <Col xs={24} md={8}>
           <Card
             hoverable
-            onClick={() => navigate('/legacy/results')}
+            onClick={() => navigate('/result/results')}
             style={{ borderRadius: 24, minHeight: 150 }}
           >
             <Space direction="vertical" size={8}>

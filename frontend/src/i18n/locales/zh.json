@@ -93,15 +93,12 @@
   },
   "dashboard": {
     "title": "VulnSeeker Web 控制台",
-    "description": "统一访问旧版 VulnSeeker 流水线：创建隔离的 Web 分析任务、浏览旧版磁盘结果、查看仓库级统计信息、验证运行时配置。",
-    "researchTag": "研究分支",
-    "evalButton": "打开安全编码 LLM 评估",
-    "evalDescription": "评估大语言模型的安全编码能力。",
+    "description": "统一访问 VulnSeeker 流水线：创建隔离的 Web 分析任务、浏览磁盘结果、查看仓库级统计信息、验证运行时配置。",
     "signedInAs": "当前用户：{{username}}",
     "runAnalysis": "运行分析",
     "cardCreateTask": "创建新任务",
     "cardCreateDesc": "支持 GitHub DB、现有 CodeQL DB 和本地源码目录三种模式。",
-    "legacyUi": "旧版 UI",
+    "legacyUi": "结果",
     "cardGlobalResults": "全局结果浏览",
     "cardGlobalDesc": "浏览共享根目录 `output/results` 的分析结果。",
     "taskHistory": "任务历史",
@@ -249,11 +246,11 @@
     "codeContext": "代码上下文"
   },
   "globalResults": {
-    "title": "旧版全局结果",
+    "title": "全局结果",
     "description": "旧版 `vulnseeker-ui` 浏览器的 Web 版本，基于共享根目录 `output/results`。",
     "back": "返回",
     "reload": "重新加载",
-    "loadFailed": "加载旧版结果失败",
+    "loadFailed": "加载结果失败",
     "detailLoadFailed": "加载问题详情失败",
     "decisionSaved": "判定已保存",
     "decisionCleared": "判定已清除",
@@ -283,11 +280,6 @@
     "loadFailed": "加载旧版辅助数据失败",
     "depsFetched": "CodeQL 依赖获取成功。",
     "depsFetchFailed": "获取 CodeQL 依赖失败"
-  },
-  "secureCoding": {
-    "title": "安全编码 LLM 评估",
-    "description": "评估大语言模型的安全编码能力。",
-    "back": "返回"
   },
   "admin": {
     "title": "管理面板",

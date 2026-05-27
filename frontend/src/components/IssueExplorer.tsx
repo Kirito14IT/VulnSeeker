@@ -34,6 +34,20 @@ const DECISION_COLORS: Record<string, string> = {
   'Not Set': 'default',
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  true: 'green',
+  false: 'red',
+  more: 'gold',
+  raw: 'blue',
+};
+
+const STATUS_TO_KEY: Record<string, string> = {
+  true: 'truePositive',
+  false: 'falsePositive',
+  more: 'needsMoreData',
+  raw: 'rawMatch',
+};
+
 const DECISIONS = ['True Positive', 'False Positive', 'Uncertain'] as const;
 const EXPLORER_CARD_HEIGHT = 720;
 const ISSUE_TABLE_HEIGHT = 630;
@@ -140,7 +154,7 @@ export default function IssueExplorer({
   const filteredIssues = useMemo(() => (
     issues.filter((issue) => {
       const query = search.trim().toLowerCase();
-      const statusLabel = t('decision.' + issue.status);
+      const statusLabel = t('decision.' + STATUS_TO_KEY[issue.status]);
       const manual = issue.manual_decision ?? t('decision.notSet');
       const matchesSearch = !query
         || issue.id.toLowerCase().includes(query)
@@ -172,8 +186,8 @@ export default function IssueExplorer({
       dataIndex: 'status',
       width: 150,
       render: (value: string) => {
-        const label = t('decision.' + value);
-        return <Tag color={DECISION_COLORS[label]}>{label}</Tag>;
+        const label = t('decision.' + STATUS_TO_KEY[value]);
+        return <Tag color={STATUS_COLORS[value]}>{label}</Tag>;
       },
     },
     {
@@ -182,7 +196,7 @@ export default function IssueExplorer({
       width: 150,
       render: (value: string | null) => {
         const label = value ?? t('decision.notSet');
-        return <Tag color={DECISION_COLORS[label]}>{label}</Tag>;
+        return <Tag color={value ? DECISION_COLORS[value] : 'default'}>{label}</Tag>;
       },
     },
     {
@@ -343,8 +357,8 @@ export default function IssueExplorer({
             ) : (
               <div style={{ height: DETAIL_CONTENT_HEIGHT, overflowY: 'auto', paddingRight: 6 }}>
                 <Space wrap style={{ marginBottom: 12 }}>
-                  <Tag color={DECISION_COLORS[t('decision.' + issueDetail.status)]}>
-                    {t('decision.' + issueDetail.status)}
+                  <Tag color={STATUS_COLORS[issueDetail.status]}>
+                    {t('decision.' + STATUS_TO_KEY[issueDetail.status])}
                   </Tag>
                   {!issueDetail.finalized && <Tag color="blue">{t('issueExplorer.rawOnly')}</Tag>}
                   <Text strong>{issueDetail.name}</Text>

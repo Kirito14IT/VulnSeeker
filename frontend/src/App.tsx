@@ -19,7 +19,6 @@ import TaskResultPage from './pages/TaskResultPage';
 import TaskVisualizationPage from './pages/TaskVisualizationPage';
 import GlobalResultsPage from './pages/GlobalResultsPage';
 import LegacySupportPage from './pages/LegacySupportPage';
-import SecureCodingEvalPage from './pages/SecureCodingEvalPage';
 import AdminPage from './pages/AdminPage';
 
 const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode; requiredRole?: string }) => {
@@ -103,16 +102,12 @@ function App() {
               element={<ProtectedRoute><TaskVisualizationPage /></ProtectedRoute>}
             />
             <Route
-              path="/legacy/results"
+              path="/result/results"
               element={<ProtectedRoute><GlobalResultsPage /></ProtectedRoute>}
             />
             <Route
-              path="/legacy/stats"
+              path="/result/stats"
               element={<ProtectedRoute requiredRole="admin"><LegacySupportPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/research/secure-coding-eval"
-              element={<ProtectedRoute><SecureCodingEvalPage /></ProtectedRoute>}
             />
             <Route
               path="/admin"
