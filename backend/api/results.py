@@ -22,8 +22,11 @@ from services.task_workspace import get_task_logs_path
 router = APIRouter(prefix="/api/tasks", tags=["results"])
 
 
-async def _get_owned_task(task_id: int, user_id: int, db: AsyncSession) -> Task:
-    stmt = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+async def _get_owned_task(task_id: int, user_id: int, db: AsyncSession, is_admin: bool = False) -> Task:
+    conditions = [Task.id == task_id]
+    if not is_admin:
+        conditions.append(Task.user_id == user_id)
+    stmt = select(Task).where(*conditions)
     result = await db.execute(stmt)
     task = result.scalar_one_or_none()
     if not task:
@@ -37,7 +40,7 @@ async def get_task_logs(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    task = await _get_owned_task(task_id, current_user.id, db)
+    task = await _get_owned_task(task_id, current_user.id, db, is_admin=current_user.role == "admin")
     if task.status == TaskStatus.PENDING and not task.result_path and not task.error_message:
         return TaskLogResponse(lines=[])
 
@@ -64,7 +67,7 @@ async def list_issues(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    task = await _get_owned_task(task_id, current_user.id, db)
+    task = await _get_owned_task(task_id, current_user.id, db, is_admin=current_user.role == "admin")
     if not task.result_path:
         return []
 
@@ -86,7 +89,7 @@ async def get_issue_detail(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    task = await _get_owned_task(task_id, current_user.id, db)
+    task = await _get_owned_task(task_id, current_user.id, db, is_admin=current_user.role == "admin")
     if not task.result_path:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No results found")
 
@@ -116,7 +119,7 @@ async def update_issue_decision(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_owned_task(task_id, current_user.id, db)
+    await _get_owned_task(task_id, current_user.id, db, is_admin=current_user.role == "admin")
 
     valid_decisions = {"True Positive", "False Positive", "Uncertain"}
     if body.decision is not None and body.decision not in valid_decisions:

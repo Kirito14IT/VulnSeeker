@@ -63,8 +63,11 @@ class AnalysisService:
             raise
         return task
 
-    async def get_task(self, task_id: int, user_id: int) -> Optional[Task]:
-        stmt = select(Task).where(Task.id == task_id, Task.user_id == user_id)
+    async def get_task(self, task_id: int, user_id: Optional[int] = None) -> Optional[Task]:
+        conditions = [Task.id == task_id]
+        if user_id is not None:
+            conditions.append(Task.user_id == user_id)
+        stmt = select(Task).where(*conditions)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 

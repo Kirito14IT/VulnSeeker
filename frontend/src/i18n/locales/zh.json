@@ -186,6 +186,8 @@
     "logsLoadFailed": "加载持久化日志失败",
     "issuesLoadFailed": "加载问题列表失败",
     "detailLoadFailed": "加载问题详情失败",
+    "taskNotFound": "任务未找到",
+    "loadError": "加载任务失败",
     "decisionSaved": "判定已保存",
     "decisionCleared": "判定已清除",
     "decisionSaveFailed": "保存判定失败"
@@ -329,7 +331,8 @@
       "deleted": "任务已删除",
       "deleteFailed": "删除任务失败",
       "loadFailed": "加载任务列表失败",
-      "deleteConfirm": "删除此任务？"
+      "deleteConfirm": "删除此任务？",
+      "viewResult": "查看结果"
     },
     "tools": {
       "title": "工具",

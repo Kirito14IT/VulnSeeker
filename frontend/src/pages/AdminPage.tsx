@@ -4,7 +4,7 @@ import {
   Table, Tabs, Tag, Typography, message,
 } from 'antd';
 import {
-  DeleteOutlined, EditOutlined, LogoutOutlined, PlusOutlined,
+  DeleteOutlined, EditOutlined, EyeOutlined, LogoutOutlined, PlusOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -180,6 +180,7 @@ function UsersTab({ me }: { me: User | null }) {
 
 function TasksTab() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<TaskWithUser[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -287,9 +288,12 @@ function TasksTab() {
       render: (v: string) => new Date(v).toLocaleString(),
     },
     {
-      title: t('table.actions'), width: 130,
+      title: t('table.actions'), width: 210,
       render: (_, record) => (
         <Space>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/tasks/${record.id}`)}>
+            {t('admin.tasks.viewResult')}
+          </Button>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>{t('common.edit')}</Button>
           <Popconfirm title={t('admin.tasks.deleteConfirm')} onConfirm={() => handleDelete(record.id)}>
             <Button danger size="small" icon={<DeleteOutlined />} />

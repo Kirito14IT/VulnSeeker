@@ -114,7 +114,8 @@ async def get_task(
     db: AsyncSession = Depends(get_db),
 ):
     service = AnalysisService(db)
-    task = await service.get_task(task_id, current_user.id)
+    uid = None if current_user.role == "admin" else current_user.id
+    task = await service.get_task(task_id, uid)
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     return TaskResponse.model_validate(task)

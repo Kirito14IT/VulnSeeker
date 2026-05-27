@@ -186,6 +186,8 @@
     "logsLoadFailed": "Failed to load persisted logs",
     "issuesLoadFailed": "Failed to load issues",
     "detailLoadFailed": "Failed to load issue detail",
+    "taskNotFound": "Task not found",
+    "loadError": "Failed to load task",
     "decisionSaved": "Decision saved",
     "decisionCleared": "Decision cleared",
     "decisionSaveFailed": "Failed to save decision"
@@ -329,7 +331,8 @@
       "deleted": "Task deleted",
       "deleteFailed": "Failed to delete task",
       "loadFailed": "Failed to load tasks",
-      "deleteConfirm": "Delete this task?"
+      "deleteConfirm": "Delete this task?",
+      "viewResult": "View Result"
     },
     "tools": {
       "title": "Tools",

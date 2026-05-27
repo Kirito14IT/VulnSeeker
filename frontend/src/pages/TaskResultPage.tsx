@@ -12,6 +12,7 @@ import { io } from 'socket.io-client';
 
 import { tasksApi, resultsApi } from '../api';
 import IssueExplorer from '../components/IssueExplorer';
+import { useAuthStore } from '../stores/authStore';
 import type { IssueDetail, IssueSummary, Task, WsMessage } from '../types';
 import { getTaskPresentation } from '../utils/taskPresentation';
 
@@ -29,6 +30,8 @@ export default function TaskResultPage() {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
   const tid = Number(taskId);
+  const user = useAuthStore((s) => s.user);
+  const backPath = user?.role === 'admin' ? '/admin' : '/';
   const logContainerRef = useRef<HTMLDivElement>(null);
   const shouldStickLogsRef = useRef(true);
   const taskRef = useRef<Task | null>(null);
@@ -42,6 +45,7 @@ export default function TaskResultPage() {
   const [logs, setLogs] = useState<WsMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     taskRef.current = task;
@@ -58,15 +62,30 @@ export default function TaskResultPage() {
     setLogs([]);
     setLoading(false);
     setDetailLoading(false);
+    setLoadError(null);
   }, [tid]);
 
   const loadTask = useCallback(async () => {
-    const data = await tasksApi.get(tid);
-    if (activeTaskIdRef.current === tid) {
-      setTask(data);
+    try {
+      const data = await tasksApi.get(tid);
+      if (activeTaskIdRef.current === tid) {
+        setTask(data);
+        setLoadError(null);
+      }
+      return data;
+    } catch (err: unknown) {
+      const response = (err as { response?: { status?: number } }).response;
+      if (activeTaskIdRef.current === tid) {
+        setTask(null);
+        if (response?.status === 404) {
+          setLoadError(t('taskResult.taskNotFound'));
+        } else {
+          setLoadError(t('taskResult.loadError'));
+        }
+      }
+      return null;
     }
-    return data;
-  }, [tid]);
+  }, [tid, t]);
 
   const loadLogs = useCallback(async () => {
     try {
@@ -229,7 +248,18 @@ export default function TaskResultPage() {
   if (!task) {
     return (
       <div style={{ minHeight: '50vh', display: 'grid', placeItems: 'center' }}>
-        <Spin size="large" />
+        {loadError ? (
+          <Card style={{ borderRadius: 24, maxWidth: 480, textAlign: 'center' }}>
+            <Space direction="vertical" size={16}>
+              <Text type="danger" style={{ fontSize: 16 }}>{loadError}</Text>
+              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backPath)}>
+                {t('taskResult.back')}
+              </Button>
+            </Space>
+          </Card>
+        ) : (
+          <Spin size="large" />
+        )}
       </div>
     );
   }
@@ -256,7 +286,7 @@ export default function TaskResultPage() {
           <Col>
             <Space direction="vertical" size={6}>
               <Space>
-                <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
+                <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backPath)}>
                   {t('taskResult.back')}
                 </Button>
                 <Tag color={taskPresentation.color} style={{ paddingInline: 10 }}>
