@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════════════════════
 # VulnSeeker .gitignore
-# Keep: source code, configs, data/templates, documentation, Docker setup
+# Keep: source code, configs, data/templates, and documentation
 # Ignore: runtime data, credentials, caches, build artifacts, IDE files
 # ══════════════════════════════════════════════════════════════════════════════
 

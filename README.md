@@ -17,7 +17,7 @@ VulnSeeker 是一个代码安全性审查平台，核心流程是先使用 CodeQ
 
 - 前端：Vite、React、TypeScript、Ant Design
 - 后端：FastAPI、Uvicorn、Socket.IO
-- 存储：MySQL、Redis
+- 存储：MySQL
 - 分析引擎：CodeQL、LLM provider 配置
 - Python 环境：Conda
 
@@ -34,6 +34,7 @@ VulnSeeker 是一个代码安全性审查平台，核心流程是先使用 CodeQ
 ## 当前维护约定
 
 - 本项目不再使用 Poetry，后端依赖由 Conda 环境配合 `backend/requirements.txt` 管理。
+- 本地开发与部署以 `WEB_STARTUP.md` 中的 Web 启动方式为准。
 - 原型阶段的 Textual/TUI 代码已移除，当前主要交互入口是 Web 控制台。
 - 启动、环境变量、数据库初始化等运行说明统一维护在 [WEB_STARTUP.md](WEB_STARTUP.md)。
 - 新功能应优先适配 Web 任务模型，不再扩展旧 CLI/TUI 交互。
