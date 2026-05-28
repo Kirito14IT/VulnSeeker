@@ -27,6 +27,9 @@ CREATE DATABASE vulnseeker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```bash
 cp .env.example .env
 ```
+特别注意
+github token
+以及codeql的路径要添加到系统PATH和软件.env（codeql.cmd）
 
 ---
 
