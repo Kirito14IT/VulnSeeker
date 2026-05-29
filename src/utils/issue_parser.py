@@ -167,6 +167,76 @@ def normalize_code_snippet(snippet: str) -> str:
     return f"{file_header}\n{normalized_code}" if file_header else normalized_code
 
 
+def focus_code_snippet(
+    snippet: str,
+    target_line: Optional[int],
+    context_lines: int = 6,
+) -> str:
+    """
+    Trim a numbered VulnSeeker code block to a small window around target_line.
+
+    The raw LLM prompt often contains a whole function. For the web UI we want
+    the initial context to point reviewers directly at the CodeQL location while
+    preserving the file header and line numbers.
+    """
+    if not snippet or not target_line:
+        return snippet
+
+    lines = snippet.splitlines()
+    line_numbers: List[int] = []
+    line_owner_numbers: List[Optional[int]] = []
+    current_number: Optional[int] = None
+    first_numbered_index: Optional[int] = None
+
+    for index, line in enumerate(lines):
+        match = LINE_NUMBER_MATCH_PATTERN.match(line)
+        if match:
+            current_number = int(match.group(1))
+            line_numbers.append(current_number)
+            line_owner_numbers.append(current_number)
+            if first_numbered_index is None:
+                first_numbered_index = index
+        elif current_number is not None:
+            line_owner_numbers.append(current_number)
+        else:
+            line_owner_numbers.append(None)
+
+    if not line_numbers or first_numbered_index is None:
+        return snippet
+
+    if target_line not in line_numbers:
+        target_line = min(line_numbers, key=lambda line: abs(line - target_line))
+
+    start_line = target_line - context_lines
+    end_line = target_line + context_lines
+    header = lines[:first_numbered_index]
+    body: List[str] = []
+
+    skipped_before = any(
+        number is not None and number < start_line
+        for number in line_owner_numbers[first_numbered_index:]
+    )
+    skipped_after = any(
+        number is not None and number > end_line
+        for number in line_owner_numbers[first_numbered_index:]
+    )
+
+    if skipped_before:
+        body.append("    ...")
+
+    for line, owner_number in zip(lines[first_numbered_index:], line_owner_numbers[first_numbered_index:]):
+        if owner_number is not None and start_line <= owner_number <= end_line:
+            body.append(line)
+
+    if skipped_after:
+        body.append("    ...")
+
+    if not body:
+        return snippet
+
+    return "\n".join(header + body).strip()
+
+
 def collect_all_code_snippets(issue: Issue) -> Tuple[str, List[str]]:
     """
     Collect all unique code snippets from final_data, deduplicated and in order.

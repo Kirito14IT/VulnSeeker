@@ -259,10 +259,10 @@
     "decisionSaveFailed": "Failed to save decision"
   },
   "legacySupport": {
-    "title": "Legacy Helper Commands",
-    "description": "Web equivalents of `vulnseeker-validate`.",
+    "title": "System Status",
+    "description": "Check system configuration, dependency readiness, and result statistics.",
     "back": "Back",
-    "getQlDeps": "Get QL dependencies",
+    "getQlDeps": "Initialize CodeQL Query Dependencies",
     "refresh": "Refresh",
     "reposWithResults": "Repositories With Results",
     "totalIndexedIssues": "Total Indexed Issues",
@@ -279,9 +279,9 @@
     "trueColumn": "True",
     "falseColumn": "False",
     "moreColumn": "Needs More Data",
-    "loadFailed": "Failed to load legacy helper data",
-    "depsFetched": "CodeQL dependencies fetched successfully.",
-    "depsFetchFailed": "Failed to fetch CodeQL dependencies"
+    "loadFailed": "Failed to load system status data",
+    "depsFetched": "CodeQL query dependencies are ready.",
+    "depsFetchFailed": "Failed to initialize CodeQL query dependencies"
   },
   "admin": {
     "title": "Admin Dashboard",
@@ -336,10 +336,10 @@
     },
     "tools": {
       "title": "Tools",
-      "cliHelpers": "CLI Helpers",
-      "statsValidation": "Stats & Validation",
-      "statsValidationDesc": "Use the web equivalents of `vulnseeker-validate`.",
-      "stats": "Stats & Validation"
+      "cliHelpers": "Status",
+      "statsValidation": "System Status",
+      "statsValidationDesc": "Check system configuration, dependency readiness, and result statistics.",
+      "stats": "System Status"
     },
     "form": {
       "username": "Username",

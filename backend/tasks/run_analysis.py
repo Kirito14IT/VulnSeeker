@@ -8,13 +8,15 @@ streams logs over Socket.IO, and persists the same log lines to disk.
 from __future__ import annotations
 
 import asyncio
+import codecs
 import json
 import logging
 import os
 import subprocess
+import threading
 import traceback
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 from core.config import get_settings
 from core.timezone import local_now
@@ -75,28 +77,111 @@ async def _append_log(task_id: int, msg_type: str, content: str) -> None:
 async def _stream_output(task_id: int, stream: asyncio.StreamReader | None, msg_type: str) -> None:
     if stream is None:
         return
-    while True:
-        line = await stream.readline()
-        if not line:
-            break
-        content = line.decode("utf-8", errors="replace").rstrip()
-        if content:
+
+    decoder = codecs.getincrementaldecoder("utf-8")("replace")
+    buffer: list[str] = []
+
+    async def flush_buffer() -> None:
+        content = "".join(buffer).rstrip()
+        buffer.clear()
+        if content.strip():
             await _append_log(task_id, msg_type, content)
 
+    while True:
+        chunk = await stream.read(1)
+        if not chunk:
+            break
 
-def _run_worker_blocking(cmd: list[str], cwd: str, env: dict[str, str]) -> tuple[int, list[str], list[str]]:
+        text = decoder.decode(chunk)
+        for char in text:
+            if char in ("\n", "\r"):
+                await flush_buffer()
+            else:
+                buffer.append(char)
+
+    remaining = decoder.decode(b"", final=True)
+    if remaining:
+        buffer.append(remaining)
+    await flush_buffer()
+
+
+def _pipe_reader(
+    task_id: int,
+    stream: BinaryIO,
+    msg_type: str,
+    loop: asyncio.AbstractEventLoop,
+) -> None:
+    decoder = codecs.getincrementaldecoder("utf-8")("replace")
+    buffer: list[str] = []
+
+    def flush_buffer() -> None:
+        content = "".join(buffer).rstrip()
+        buffer.clear()
+        if not content.strip():
+            return
+        future = asyncio.run_coroutine_threadsafe(
+            _append_log(task_id, msg_type, content),
+            loop,
+        )
+        future.result()
+
+    while True:
+        chunk = stream.read(1)
+        if not chunk:
+            break
+
+        text = decoder.decode(chunk)
+        for char in text:
+            if char in ("\n", "\r"):
+                flush_buffer()
+            else:
+                buffer.append(char)
+
+    remaining = decoder.decode(b"", final=True)
+    if remaining:
+        buffer.append(remaining)
+    flush_buffer()
+
+
+def _run_worker_streaming_blocking(
+    task_id: int,
+    cmd: list[str],
+    cwd: str,
+    env: dict[str, str],
+    loop: asyncio.AbstractEventLoop,
+) -> int:
     process = subprocess.Popen(
         cmd,
         cwd=cwd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
+        bufsize=0,
     )
-    stdout, stderr = process.communicate()
-    return process.returncode, stdout.splitlines(), stderr.splitlines()
+
+    readers = []
+    if process.stdout is not None:
+        readers.append(threading.Thread(
+            target=_pipe_reader,
+            args=(task_id, process.stdout, "log", loop),
+            daemon=True,
+        )
+        )
+    if process.stderr is not None:
+        readers.append(threading.Thread(
+            target=_pipe_reader,
+            args=(task_id, process.stderr, "error", loop),
+            daemon=True,
+        )
+        )
+
+    for reader in readers:
+        reader.start()
+
+    return_code = process.wait()
+    for reader in readers:
+        reader.join()
+    return return_code
 
 
 async def _run_worker_async_streaming(
@@ -125,42 +210,19 @@ async def _run_worker_cross_platform(
     cwd: str,
     env: dict[str, str],
 ) -> int:
-    if os.name == "nt":
-        return_code, stdout_lines, stderr_lines = await asyncio.to_thread(
-            _run_worker_blocking,
-            cmd,
-            cwd,
-            env,
-        )
-        for line in stdout_lines:
-            content = line.rstrip()
-            if content:
-                await _append_log(task_id, "log", content)
-        for line in stderr_lines:
-            content = line.rstrip()
-            if content:
-                await _append_log(task_id, "error", content)
-        return return_code
-
     try:
         return await _run_worker_async_streaming(task_id, cmd, cwd, env)
     except NotImplementedError:
-        logger.warning("Async subprocess unsupported; falling back to blocking worker runner")
-        return_code, stdout_lines, stderr_lines = await asyncio.to_thread(
-            _run_worker_blocking,
+        logger.warning("Async subprocess unsupported; falling back to threaded worker stream")
+        loop = asyncio.get_running_loop()
+        return await asyncio.to_thread(
+            _run_worker_streaming_blocking,
+            task_id,
             cmd,
             cwd,
             env,
+            loop,
         )
-        for line in stdout_lines:
-            content = line.rstrip()
-            if content:
-                await _append_log(task_id, "log", content)
-        for line in stderr_lines:
-            content = line.rstrip()
-            if content:
-                await _append_log(task_id, "error", content)
-        return return_code
 
 
 def _count_final_results(task_id: int) -> int:
@@ -212,6 +274,7 @@ async def run_analysis(
 
         cmd = [
             analysis_python,
+            "-u",
             str(worker_script),
             "--mode",
             mode_value,
@@ -234,10 +297,10 @@ async def run_analysis(
             if existing_pythonpath
             else str(settings.VULNSEEKER_ROOT)
         )
-        env.setdefault("PYTHONUNBUFFERED", "1")
+        env["PYTHONUNBUFFERED"] = "1"
+        env["PYTHONIOENCODING"] = "utf-8"
         if os.name == "nt":
-            env.setdefault("PYTHONUTF8", "1")
-            env.setdefault("PYTHONIOENCODING", "utf-8")
+            env["PYTHONUTF8"] = "1"
 
         await _append_log(task_id, "log", "Launching legacy analysis engine")
         return_code = await _run_worker_cross_platform(task_id, cmd, str(workspace), env)

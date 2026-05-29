@@ -31,6 +31,12 @@ cp .env.example .env
 github token
 以及codeql的路径要添加到系统PATH和软件.env（codeql.cmd）
 
+CodeQL CLI 需要由用户手动下载并解压，然后在 `.env` 中把 `CODEQL_PATH` 指向实际的 `codeql` 或 `codeql.cmd`。管理后台的 **初始化 CodeQL 查询依赖** 按钮不会下载 CodeQL CLI 本体；它只会基于已配置好的 CodeQL CLI 初始化 VulnSeeker 辅助查询所需依赖，并确认官方 query suite 可用。
+
+CodeQL 的漏洞扫描只使用官方 query suite，默认配置为 `security-extended`，更适合漏洞复核场景。项目首次运行扫描时会自动解析对应语言的官方 query pack；如果本地 CodeQL bundle 或包缓存中没有对应 query pack，系统才会现场下载。需要调整官方规则集合时，可在 `.env` 中修改 `CODEQL_QUERY_SUITE`。
+
+可选但推荐：管理员角色在部署系统后，进入管理后台，点击 **初始化 CodeQL 查询依赖** 按钮，手动执行一次组件初始化。后续再次点击会优先校验本地依赖是否可解析，缺失时才补充下载；否则用户执行第一个分析任务时，系统可能需要现场准备 query pack，首次任务耗时会更长。
+
 ---
 
 ## 3. 准备 Conda 后端环境

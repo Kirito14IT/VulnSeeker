@@ -3,24 +3,24 @@
 Compile and run CodeQL queries on CodeQL databases for a specific language.
 
 Requires that CodeQL is installed or available under the CODEQL path.
-By default, it compiles all .ql files under 'data/queries/<LANG>/tools' and
-'data/queries/<LANG>/issues', then runs them on each CodeQL database located
-in 'output/databases/<LANG>'.
+By default, it runs official CodeQL query suites plus project-local helper
+queries under 'data/queries/<LANG>/tools'. Helper queries only provide context
+CSV files for the LLM review step; vulnerability findings come from the
+official suite.
 
 Example:
     python src/codeql/run_codeql_queries.py
 """
 
-import subprocess
 import os
+import subprocess
 from pathlib import Path
-from typing import List, Optional
 
 # Make sure your common_functions module is in your PYTHONPATH or same folder
-from src.utils.common_functions import get_all_dbs
+from src.utils.common_functions import get_all_dbs, read_yml
 from src.utils.config import get_codeql_path
 from src.utils.logger import get_logger
-from src.utils.exceptions import CodeQLError, CodeQLConfigError, CodeQLExecutionError
+from src.utils.exceptions import CodeQLConfigError, CodeQLExecutionError
 
 logger = get_logger(__name__)
 
@@ -28,6 +28,26 @@ logger = get_logger(__name__)
 # Default locations/values
 DEFAULT_CODEQL = get_codeql_path()
 DEFAULT_LANG = "c"  # Mapped to data/queries/cpp for some tasks
+
+SUPPORTED_CODEQL_LANGS = {
+    "c": "cpp",
+    "cpp": "cpp",
+    "java": "java",
+    "javascript": "javascript",
+    "js": "javascript",
+    "typescript": "javascript",
+    "ts": "javascript",
+    "python": "python",
+}
+
+OFFICIAL_QUERY_PACKS = {
+    "cpp": "codeql/cpp-queries",
+    "java": "codeql/java-queries",
+    "javascript": "codeql/javascript-queries",
+    "python": "codeql/python-queries",
+}
+
+DEFAULT_OFFICIAL_SUITE = "security-extended"
 
 
 def _format_process_output(stdout: str | None, stderr: str | None) -> str:
@@ -70,6 +90,92 @@ def _run_codeql_command(command: list[str], failure_message: str) -> None:
         raise CodeQLExecutionError(
             f"{failure_message}: CodeQL returned exit code {e.returncode}{detail}"
         ) from e
+
+
+def _env_flag(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def canonical_codeql_lang(lang: str) -> str:
+    """
+    Normalize UI/config language names to CodeQL language names.
+    """
+    normalized = lang.strip().lower()
+    return SUPPORTED_CODEQL_LANGS.get(normalized, normalized)
+
+
+def query_subfolder_for_lang(lang: str) -> str:
+    return canonical_codeql_lang(lang)
+
+
+def _get_db_language(curr_db: str) -> str | None:
+    db_yml_path = Path(curr_db) / "codeql-database.yml"
+    if not db_yml_path.exists():
+        return None
+    try:
+        db_yml = read_yml(str(db_yml_path)) or {}
+    except Exception as e:
+        logger.warning("Could not read CodeQL database metadata %s: %s", db_yml_path, e)
+        return None
+    primary_lang = db_yml.get("primaryLanguage")
+    if not primary_lang:
+        return None
+    return canonical_codeql_lang(str(primary_lang))
+
+
+def _resolve_official_suite(lang: str) -> str | None:
+    codeql_lang = canonical_codeql_lang(lang)
+    query_pack = OFFICIAL_QUERY_PACKS.get(codeql_lang)
+    if not query_pack:
+        return None
+
+    suite = os.getenv("CODEQL_QUERY_SUITE", DEFAULT_OFFICIAL_SUITE).strip()
+    if not suite:
+        suite = DEFAULT_OFFICIAL_SUITE
+
+    if ":" in suite or suite.endswith(".ql") or suite.endswith(".qls"):
+        return suite
+
+    suite = suite.replace("_", "-")
+    return f"{query_pack}:codeql-suites/{codeql_lang}-{suite}.qls"
+
+
+def ensure_official_query_suite(lang: str, codeql_bin: str) -> str | None:
+    """
+    Ensure the official CodeQL query suite for a language can be resolved.
+    Missing packs are downloaded on demand.
+    """
+    codeql_lang = canonical_codeql_lang(lang)
+    suite_spec = _resolve_official_suite(codeql_lang)
+    query_pack = OFFICIAL_QUERY_PACKS.get(codeql_lang)
+    if not suite_spec or not query_pack:
+        logger.warning("No official CodeQL query suite is configured for language '%s'.", lang)
+        return None
+
+    try:
+        _run_codeql_command(
+            [codeql_bin, "resolve", "queries", suite_spec],
+            f"Failed to resolve official CodeQL query suite {suite_spec}",
+        )
+        return suite_spec
+    except CodeQLExecutionError:
+        logger.info(
+            "Official CodeQL query pack for %s is missing or incomplete. Downloading %s...",
+            codeql_lang,
+            query_pack,
+        )
+        _run_codeql_command(
+            [codeql_bin, "pack", "download", query_pack],
+            f"Failed to download official CodeQL query pack {query_pack}",
+        )
+        _run_codeql_command(
+            [codeql_bin, "resolve", "queries", suite_spec],
+            f"Failed to resolve official CodeQL query suite {suite_spec} after downloading {query_pack}",
+        )
+        return suite_spec
 
 
 def append_csv(source_csv: str, dest_csv: str) -> None:
@@ -195,23 +301,22 @@ def run_one_query(
 def run_queries_on_db(
     curr_db: str,
     tools_folder: str,
-    queries_folder: str,
     threads: int,
     codeql_bin: str,
     current_lang: str,
+    official_suite: str | None = None,
     timeout: int = 300
 ) -> None:
     """
-    Execute all tool queries in 'tools_folder' individually on a given database,
-    then run 'database analyze' with all queries in 'queries_folder'.
+    Execute helper queries and the configured official suite on one database.
 
     Args:
         curr_db (str): The path to the CodeQL database.
         tools_folder (str): Folder containing individual .ql files to run.
-        queries_folder (str): Folder containing .ql queries for database analysis.
         threads (int): Number of threads to use during query execution.
         codeql_bin (str): Full path to the 'codeql' executable.
         current_lang (str): The language currently being analyzed.
+        official_suite (str | None): Official CodeQL suite spec to run.
         timeout (int, optional): Timeout in seconds for the 'database analyze' command.
             Defaults to 300.
     
@@ -242,28 +347,28 @@ def run_queries_on_db(
     else:
         logger.warning("Tools folder '%s' not found. Skipping individual queries.", tools_folder)
 
-    # 2) Run the entire queries folder in one go using database analyze
-    queries_folder_path = Path(queries_folder)
-    if queries_folder_path.is_dir():
-        output_issues = str(Path(curr_db) / f"issues_{current_lang}.csv")
-        final_issues = str(Path(curr_db) / "issues.csv")
+    final_issues = str(Path(curr_db) / "issues.csv")
+
+    # 2) Run the official CodeQL query suite. This is the main source of raw findings.
+    if official_suite:
+        output_issues = str(Path(curr_db) / f"issues_official_{current_lang}.csv")
+        logger.info("Running official CodeQL suite for %s: %s", current_lang, official_suite)
         _run_codeql_command(
             [
                 codeql_bin,
                 "database",
                 "analyze",
                 curr_db,
-                queries_folder,
+                official_suite,
                 f'--timeout={timeout}',
                 '--format=csv',
                 f'--output={output_issues}',
-                f'--threads={threads}'
+                f'--threads={threads}',
+                '--download',
             ],
-            f"Failed to analyze database {curr_db} with queries from {queries_folder}",
+            f"Failed to analyze database {curr_db} with official suite {official_suite}",
         )
         append_csv(output_issues, final_issues)
-    else:
-        logger.warning("Queries folder '%s' not found. Skipping database analysis.", queries_folder)
 
 
 def compile_and_run_codeql_queries(
@@ -277,9 +382,9 @@ def compile_and_run_codeql_queries(
     """
     Compile and run CodeQL queries on CodeQL databases for a specific language.
 
-    1. Pre-compile all .ql files in the tools and queries folders.
+    1. Pre-compile project-local helper queries and resolve official suites.
     2. Enumerate all CodeQL DBs for the given language.
-    3. Run each DB against both the 'tools' and 'issues' queries folders.
+    3. Run helper queries and official suites.
 
     Args:
         codeql_bin (str, optional): Full path to the 'codeql' executable. Defaults to DEFAULT_CODEQL.
@@ -293,19 +398,22 @@ def compile_and_run_codeql_queries(
         CodeQLExecutionError: If query compilation or execution fails.
     """
     # Split by comma if multiple languages are provided
-    lang_list = [l.strip() for l in lang.split(",")]
+    lang_list = [canonical_codeql_lang(l) for l in lang.split(",") if l.strip()]
+    run_official_queries = _env_flag("CODEQL_RUN_OFFICIAL_QUERIES", True)
+    official_suites: dict[str, str] = {}
     
     for current_lang in lang_list:
         # Setup paths
-        queries_subfolder = "cpp" if current_lang == "c" else current_lang
-        queries_folder = str(Path("data/queries") / queries_subfolder / "issues")
+        queries_subfolder = query_subfolder_for_lang(current_lang)
         tools_folder = str(Path("data/queries") / queries_subfolder / "tools")
 
-        # Step 1: Pre-compile all queries
+        # Step 1: Pre-compile helper queries used for LLM context.
         if Path(tools_folder).exists():
             compile_all_queries(tools_folder, threads, codeql_bin)
-        if Path(queries_folder).exists():
-            compile_all_queries(queries_folder, threads, codeql_bin)
+        if run_official_queries:
+            official_suite = ensure_official_query_suite(current_lang, codeql_bin)
+            if official_suite:
+                official_suites[current_lang] = official_suite
 
     # Step 2: Run queries
     # Validate database directory exists and is accessible
@@ -349,30 +457,49 @@ def compile_and_run_codeql_queries(
                 logger.warning("Cannot access database folder '%s'. Skipping.", curr_db)
                 continue
         
-        # We need to run queries for each language and append the results.
-        # So we delete the existing issues.csv and FunctionTree.csv to start fresh for this run
+        # Start fresh so reruns cannot append stale CodeQL helper or issue CSVs.
         issues_csv = curr_db_path / "issues.csv"
-        function_tree_csv = curr_db_path / "FunctionTree.csv"
-        
         if issues_csv.exists():
             issues_csv.unlink()
-        if function_tree_csv.exists():
-            function_tree_csv.unlink()
+        for stale_csv in curr_db_path.glob("*.csv"):
+            if stale_csv.name.lower().startswith(
+                (
+                    "issues_",
+                    "functiontree",
+                    "classes",
+                    "globalvars",
+                    "macros",
+                )
+            ):
+                stale_csv.unlink()
             
         logger.info("Processing DB: %s", curr_db)
+        db_lang = _get_db_language(curr_db)
+        if db_lang:
+            logger.info("Detected CodeQL database language: %s", db_lang)
+
         for current_lang in lang_list:
-            queries_subfolder = "cpp" if current_lang == "c" else current_lang
-            queries_folder = str(Path("data/queries") / queries_subfolder / "issues")
+            if db_lang and db_lang != current_lang:
+                logger.info(
+                    "Skipping %s queries for %s database %s",
+                    current_lang,
+                    db_lang,
+                    curr_db,
+                )
+                continue
+
+            queries_subfolder = query_subfolder_for_lang(current_lang)
             tools_folder = str(Path("data/queries") / queries_subfolder / "tools")
+            official_suite = official_suites.get(current_lang) if run_official_queries else None
             
             logger.info("Running queries for language: %s", current_lang)
             run_queries_on_db(
                 curr_db,
                 tools_folder,
-                queries_folder,
                 threads,
                 codeql_bin,
                 current_lang,
+                official_suite,
                 timeout
             )
 

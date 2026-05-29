@@ -54,6 +54,7 @@ export type LLMDecision = 'true' | 'false' | 'more' | 'raw';
 
 export interface IssueSummary {
   id: string;
+  key: string;
   name: string;
   file: string;
   line: number;

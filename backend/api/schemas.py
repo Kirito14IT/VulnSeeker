@@ -104,6 +104,7 @@ class TaskUpdate(BaseModel):
 class IssueSummary(BaseModel):
     """Lightweight issue summary for the issues list table."""
     id: str
+    key: str
     name: str
     file: str
     line: int

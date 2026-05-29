@@ -39,6 +39,8 @@ class LLMAnalyzer:
         self.db_lookup = CodeQLDBLookup()
         self.timeout: int = 300   # default 5 minutes
         self.max_retries: int = 3  # default 3 retries
+        self.temperature: float = 0.0
+        self.top_p: float = 1.0
 
         # Tools configuration: A set of function calls the LLM can invoke
         self.tools: List[Dict[str, Any]] = [
@@ -302,6 +304,8 @@ class LLMAnalyzer:
                 logger.info("Using model: %s", self.model)
                 self.timeout = config.get("timeout", 300)
                 self.max_retries = config.get("max_retries", 3)
+                self.temperature = float(config.get("temperature", 0.0))
+                self.top_p = float(config.get("top_p", 1.0))
                 self.setup_litellm_env()
                 return
             
@@ -315,6 +319,8 @@ class LLMAnalyzer:
             # Read timeout (seconds) and max_retries from config
             self.timeout = config.get("timeout", 300)
             self.max_retries = config.get("max_retries", 3)
+            self.temperature = float(config.get("temperature", 0.0))
+            self.top_p = float(config.get("top_p", 1.0))
             self.setup_litellm_env()
             
         except ValueError as e:
@@ -513,8 +519,8 @@ class LLMAnalyzer:
         current_function: Dict[str, str],
         functions: List[Dict[str, str]],
         db_path: str,
-        temperature: float = 0.2,
-        top_p: float = 0.2
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None
     ) -> Tuple[List[Dict[str, Any]], str]:
         """
         Main loop to keep querying the LLM with the MESSAGES context plus
@@ -527,8 +533,8 @@ class LLMAnalyzer:
             current_function (Dict[str, str]): The current function dict for context.
             functions (List[Dict[str, str]]): List of function dictionaries.
             db_path (str): Path to the CodeQL DB folder.
-            temperature (float, optional): Sampling temperature. Defaults to 0.2.
-            top_p (float, optional): Nucleus sampling. Defaults to 0.2.
+            temperature (float, optional): Sampling temperature from config by default.
+            top_p (float, optional): Nucleus sampling from config by default.
 
         Returns:
             Tuple[List[Dict[str, Any]], str]:
@@ -542,6 +548,11 @@ class LLMAnalyzer:
         """
         if not self.model:
             raise RuntimeError("LLM model not initialized. Call init_llm_client() first.")
+
+        if temperature is None:
+            temperature = self.temperature
+        if top_p is None:
+            top_p = self.top_p
         
         got_answer = False
         db_path_clean = db_path.replace(" ", "")
@@ -653,72 +664,85 @@ class LLMAnalyzer:
 
                     response_msg = ""
 
-                    # Evaluate which tool to call
-                    if tool_function_name == 'get_function_code' and "function_name" in tool_args:
-                        child_function, parent_function = self.db_lookup.get_function_by_name(
-                            function_tree_file, tool_args["function_name"], all_functions
-                        )
-                        if isinstance(child_function, dict):
-                            all_functions.append(child_function)
-                        child_code = self.extract_function_from_file(db_path_clean, child_function)
-                        response_msg = child_code
+                    try:
+                        # Evaluate which tool to call
+                        if tool_function_name == 'get_function_code' and "function_name" in tool_args:
+                            child_function, parent_function = self.db_lookup.get_function_by_name(
+                                function_tree_file, tool_args["function_name"], all_functions
+                            )
+                            if isinstance(child_function, dict):
+                                all_functions.append(child_function)
+                            child_code = self.extract_function_from_file(db_path_clean, child_function)
+                            response_msg = child_code
 
-                        if isinstance(child_function, dict) and isinstance(parent_function, dict):
-                            caller_code = self.extract_function_from_file(db_path_clean, parent_function)
-                            args_content = self.map_func_args_by_llm(caller_code, child_code)
-                            arg_messages.append({
-                                "role": args_content.role,
-                                "content": args_content.content
-                            })
+                            if isinstance(child_function, dict) and isinstance(parent_function, dict):
+                                caller_code = self.extract_function_from_file(db_path_clean, parent_function)
+                                args_content = self.map_func_args_by_llm(caller_code, child_code)
+                                arg_messages.append({
+                                    "role": args_content.role,
+                                    "content": args_content.content
+                                })
 
-                    elif tool_function_name == 'get_caller_function':
-                        caller_function = self.db_lookup.get_caller_function(function_tree_file, current_function)
-                        response_msg = str(caller_function)
+                        elif tool_function_name == 'get_caller_function':
+                            caller_function = self.db_lookup.get_caller_function(function_tree_file, current_function)
+                            response_msg = str(caller_function)
 
-                        if isinstance(caller_function, dict):
-                            all_functions.append(caller_function)
-                            caller_code = self.extract_function_from_file(db_path_clean, caller_function)
+                            if isinstance(caller_function, dict):
+                                all_functions.append(caller_function)
+                                caller_code = self.extract_function_from_file(db_path_clean, caller_function)
+                                response_msg = (
+                                    f"Here is the caller function for '{current_function['function_name']}':\n"
+                                    + caller_code
+                                )
+                                args_content = self.map_func_args_by_llm(
+                                    caller_code,
+                                    self.extract_function_from_file(db_path_clean, current_function)
+                                )
+                                arg_messages.append({
+                                    "role": args_content.role,
+                                    "content": args_content.content
+                                })
+                                current_function = caller_function
+
+                        elif tool_function_name == 'get_macro' and "macro_name" in tool_args:
+                            macro = self.db_lookup.get_macro(db_path_clean, tool_args["macro_name"])
+                            if isinstance(macro, dict):
+                                response_msg = macro["body"]
+                            else:
+                                response_msg = macro
+
+                        elif tool_function_name == 'get_global_var' and "global_var_name" in tool_args:
+                            global_var = self.db_lookup.get_global_var(db_path_clean, tool_args["global_var_name"])
+                            if isinstance(global_var, dict):
+                                global_var_code = self.extract_function_from_file(db_path_clean, global_var)
+                                response_msg = global_var_code
+                            else:
+                                response_msg = global_var
+
+                        elif tool_function_name == 'get_class' and "object_name" in tool_args:
+                            curr_class = self.db_lookup.get_class(db_path_clean, tool_args["object_name"])
+                            if isinstance(curr_class, dict):
+                                class_code = self.extract_function_from_file(db_path_clean, curr_class)
+                                response_msg = class_code
+                            else:
+                                response_msg = curr_class
+
+                        else:
                             response_msg = (
-                                f"Here is the caller function for '{current_function['function_name']}':\n"
-                                + caller_code
+                                f"No matching tool '{tool_function_name}' or invalid args {tool_args}. "
+                                "Try again."
                             )
-                            args_content = self.map_func_args_by_llm(
-                                caller_code,
-                                self.extract_function_from_file(db_path_clean, current_function)
-                            )
-                            arg_messages.append({
-                                "role": args_content.role,
-                                "content": args_content.content
-                            })
-                            current_function = caller_function
-
-                    elif tool_function_name == 'get_macro' and "macro_name" in tool_args:
-                        macro = self.db_lookup.get_macro(db_path_clean, tool_args["macro_name"])
-                        if isinstance(macro, dict):
-                            response_msg = macro["body"]
-                        else:
-                            response_msg = macro
-
-                    elif tool_function_name == 'get_global_var' and "global_var_name" in tool_args:
-                        global_var = self.db_lookup.get_global_var(db_path_clean, tool_args["global_var_name"])
-                        if isinstance(global_var, dict):
-                            global_var_code = self.extract_function_from_file(db_path_clean, global_var)
-                            response_msg = global_var_code
-                        else:
-                            response_msg = global_var
-
-                    elif tool_function_name == 'get_class' and "object_name" in tool_args:
-                        curr_class = self.db_lookup.get_class(db_path_clean, tool_args["object_name"])
-                        if isinstance(curr_class, dict):
-                            class_code = self.extract_function_from_file(db_path_clean, curr_class)
-                            response_msg = class_code
-                        else:
-                            response_msg = curr_class
-
-                    else:
+                    except Exception as e:
+                        logger.warning(
+                            "Tool call %s failed with args %s: %s",
+                            tool_function_name,
+                            tool_args,
+                            e,
+                        )
                         response_msg = (
-                            f"No matching tool '{tool_function_name}' or invalid args {tool_args}. "
-                            "Try again."
+                            f"Tool '{tool_function_name}' failed: {e}. "
+                            "Continue with the available code context and return a status code. "
+                            "Use 7331 if this missing context is required."
                         )
 
                     messages.append({

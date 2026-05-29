@@ -37,7 +37,7 @@ export default function GlobalResultsPage() {
     setSelectedIssue(issue);
     setDetailLoading(true);
     try {
-      const detail = await legacyApi.getIssue(issue.id);
+      const detail = await legacyApi.getIssue(issue.key);
       setIssueDetail(detail);
     } catch {
       message.error(t('globalResults.detailLoadFailed'));
@@ -50,13 +50,13 @@ export default function GlobalResultsPage() {
     try {
       await legacyApi.updateDecision(issueId, decision);
       setIssues((previous) => previous.map((issue) => (
-        issue.id === issueId ? { ...issue, manual_decision: decision } : issue
+        issue.key === issueId ? { ...issue, manual_decision: decision } : issue
       )));
       setSelectedIssue((previous) => (
-        previous && previous.id === issueId ? { ...previous, manual_decision: decision } : previous
+        previous && previous.key === issueId ? { ...previous, manual_decision: decision } : previous
       ));
       setIssueDetail((previous) => (
-        previous && previous.id === issueId ? { ...previous, manual_decision: decision } : previous
+        previous && previous.key === issueId ? { ...previous, manual_decision: decision } : previous
       ));
       message.success(decision ? t('globalResults.decisionSaved') : t('globalResults.decisionCleared'));
     } catch {

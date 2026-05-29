@@ -259,10 +259,10 @@
     "decisionSaveFailed": "保存判定失败"
   },
   "legacySupport": {
-    "title": "旧版辅助命令",
-    "description": "`vulnseeker-validate` 的 Web 等效功能。",
+    "title": "系统运行状态",
+    "description": "检查系统配置、依赖准备状态和结果统计。",
     "back": "返回",
-    "getQlDeps": "获取 QL 依赖",
+    "getQlDeps": "初始化 CodeQL 查询依赖",
     "refresh": "刷新",
     "reposWithResults": "有结果的仓库数",
     "totalIndexedIssues": "已索引问题总数",
@@ -279,9 +279,9 @@
     "trueColumn": "真",
     "falseColumn": "假",
     "moreColumn": "需要更多数据",
-    "loadFailed": "加载旧版辅助数据失败",
-    "depsFetched": "CodeQL 依赖获取成功。",
-    "depsFetchFailed": "获取 CodeQL 依赖失败"
+    "loadFailed": "加载系统运行状态数据失败",
+    "depsFetched": "CodeQL 查询依赖已就绪。",
+    "depsFetchFailed": "初始化 CodeQL 查询依赖失败"
   },
   "admin": {
     "title": "管理面板",
@@ -336,10 +336,10 @@
     },
     "tools": {
       "title": "工具",
-      "cliHelpers": "CLI 辅助",
-      "statsValidation": "统计与验证",
-      "statsValidationDesc": "使用 `vulnseeker-validate` 的 Web 等效功能。",
-      "stats": "统计与验证"
+      "cliHelpers": "运行状态",
+      "statsValidation": "系统运行状态",
+      "statsValidationDesc": "检查系统配置、依赖准备状态和结果统计。",
+      "stats": "系统运行状态"
     },
     "form": {
       "username": "用户名",

@@ -15,7 +15,7 @@ from api.auth import get_current_user
 from api.schemas import IssueDecisionUpdate, IssueDetail, IssueSummary, TaskLogResponse, WSMessage
 from core.database import get_db
 from models.models import IssueDecision, Task, TaskStatus, User
-from services.result_loader import _issue_to_detail, _issue_to_summary, find_task_issue, load_task_issues
+from services.result_loader import _issue_to_detail, _issue_to_summary, find_task_issue, issue_key, load_task_issues
 from services.task_workspace import get_task_logs_path
 
 
@@ -79,7 +79,7 @@ async def list_issues(
 
     results_root = Path(task.result_path)
     issues = load_task_issues(results_root, task.language)
-    return [_issue_to_summary(issue, decisions.get(issue.id)) for issue in issues]
+    return [_issue_to_summary(issue, decisions.get(issue_key(issue))) for issue in issues]
 
 
 @router.get("/{task_id}/issues/{issue_id}", response_model=IssueDetail)

@@ -122,7 +122,7 @@ export default function TaskResultPage() {
     setSelectedIssue(issue);
     setDetailLoading(true);
     try {
-      const detail = await resultsApi.getIssue(tid, issue.id);
+      const detail = await resultsApi.getIssue(tid, issue.key);
       if (activeTaskIdRef.current === tid) {
         setIssueDetail(detail);
       }
@@ -139,13 +139,13 @@ export default function TaskResultPage() {
     try {
       await resultsApi.updateDecision(tid, issueId, decision);
       setIssues((previous) => previous.map((issue) => (
-        issue.id === issueId ? { ...issue, manual_decision: decision } : issue
+        issue.key === issueId ? { ...issue, manual_decision: decision } : issue
       )));
       setSelectedIssue((previous) => (
-        previous && previous.id === issueId ? { ...previous, manual_decision: decision } : previous
+        previous && previous.key === issueId ? { ...previous, manual_decision: decision } : previous
       ));
       setIssueDetail((previous) => (
-        previous && previous.id === issueId ? { ...previous, manual_decision: decision } : previous
+        previous && previous.key === issueId ? { ...previous, manual_decision: decision } : previous
       ));
       message.success(decision ? t('taskResult.decisionSaved') : t('taskResult.decisionCleared'));
     } catch {

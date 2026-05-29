@@ -233,8 +233,8 @@ def load_llm_config() -> Dict[str, Any]:
         api_key = "ollama_placeholder"
     
     # Get optional parameters
-    temperature = float(os.getenv("LLM_TEMPERATURE", "0.2"))
-    top_p = float(os.getenv("LLM_TOP_P", "0.2"))
+    temperature = float(os.getenv("LLM_TEMPERATURE", "0"))
+    top_p = float(os.getenv("LLM_TOP_P", "1"))
     timeout = int(os.getenv("LLM_TIMEOUT", "300"))
     max_retries = int(os.getenv("LLM_MAX_RETRIES", "3"))
 

@@ -8,14 +8,27 @@ from pathlib import Path
 from typing import Optional
 
 from api.schemas import CodeSnippet, IssueDetail, IssueSummary, RepoStat
-from src.utils.issue_parser import collect_all_code_snippets, extract_code_blocks_from_text, extract_last_message
+from src.utils.issue_parser import (
+    collect_all_code_snippets,
+    extract_code_blocks_from_text,
+    extract_last_message,
+    focus_code_snippet,
+)
 from src.utils.models import Issue
 from src.utils.results_loader import ResultsLoader
+
+
+ISSUE_KEY_SEPARATOR = "::"
+
+
+def issue_key(issue: Issue) -> str:
+    return ISSUE_KEY_SEPARATOR.join([issue.lang, issue.issue_type, issue.id])
 
 
 def _issue_to_summary(issue: Issue, manual_decision: Optional[str]) -> IssueSummary:
     return IssueSummary(
         id=issue.id,
+        key=issue_key(issue),
         name=issue.name.strip('"'),
         file=issue.file.strip('"'),
         line=issue.line,
@@ -28,12 +41,21 @@ def _issue_to_summary(issue: Issue, manual_decision: Optional[str]) -> IssueSumm
 
 
 def _issue_to_detail(issue: Issue, manual_decision: Optional[str]) -> IssueDetail:
-    initial_code, additional_code = collect_all_code_snippets(issue)
-    if not initial_code and issue.raw_data and isinstance(issue.raw_data.get("prompt"), str):
+    initial_code = ""
+    additional_code: list[str] = []
+
+    if issue.raw_data and isinstance(issue.raw_data.get("prompt"), str):
         raw_prompt_blocks = extract_code_blocks_from_text(issue.raw_data["prompt"])
         if raw_prompt_blocks:
-            initial_code = raw_prompt_blocks[0]
+            initial_code = focus_code_snippet(raw_prompt_blocks[0], issue.line)
             additional_code = raw_prompt_blocks[1:]
+
+    llm_initial_code, llm_additional_code = collect_all_code_snippets(issue)
+    if not initial_code:
+        initial_code = focus_code_snippet(llm_initial_code, issue.line)
+        additional_code.extend(snippet for snippet in llm_additional_code if snippet)
+    else:
+        additional_code.extend(snippet for snippet in llm_additional_code if snippet)
 
     snippets: list[CodeSnippet] = []
     if initial_code:
@@ -65,7 +87,7 @@ def load_task_issues(results_root: Path, language: str) -> list[Issue]:
 def find_task_issue(results_root: Path, language: str, issue_id: str) -> Optional[Issue]:
     issues = load_task_issues(results_root, language)
     for issue in issues:
-        if issue.id == issue_id:
+        if issue_key(issue) == issue_id or issue.id == issue_id:
             return issue
     return None
 
@@ -98,14 +120,14 @@ def build_repo_stats(issues: list[Issue]) -> list[RepoStat]:
 
     for issue in issues:
         repo = issue.repo
-        status = (issue.manual_decision or issue.status).strip()
+        status = (issue.manual_decision or issue.status).strip().lower().replace("_", " ").replace("-", " ")
         stats[repo]["total"] += 1
 
-        if status == "True Positive":
+        if status in {"true", "true positive", "tp"}:
             stats[repo]["true_count"] += 1
-        elif status == "False Positive":
+        elif status in {"false", "false positive", "fp"}:
             stats[repo]["false_count"] += 1
-        elif status == "Uncertain":
+        elif status in {"more", "uncertain", "needs more data", "raw"}:
             stats[repo]["more_count"] += 1
         else:
             stats[repo]["more_count"] += 1

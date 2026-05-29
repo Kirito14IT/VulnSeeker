@@ -100,7 +100,7 @@ type MatrixRecord = {
 
 
 function issueKey(issue: IssueSummary): string {
-  return `${issue.issue_type}:${issue.id}`;
+  return issue.key;
 }
 
 
@@ -278,7 +278,7 @@ export default function TaskVisualizationPage() {
       setIssues(issueData);
       const detailResults = await Promise.allSettled(
         issueData.map(async (issue) => {
-          const detail = await resultsApi.getIssue(tid, issue.id);
+          const detail = await resultsApi.getIssue(tid, issue.key);
           return [issueKey(issue), detail] as const;
         }),
       );

@@ -268,8 +268,24 @@ class ResultsLoader:
         Returns:
             tuple[str, int]: Tuple of (file_basename, line_number).
         """
+        issue = raw_data.get("issue")
+        if isinstance(issue, dict):
+            file_path = issue.get("file") or ""
+            try:
+                line = int(issue.get("start_line") or 0)
+            except (TypeError, ValueError):
+                line = 0
+            if file_path or line:
+                return (PurePosixPath(str(file_path)).name if file_path else "unknown", line)
+
+        prompt = raw_data.get("prompt")
+        if isinstance(prompt, str):
+            location_match = re.search(r"Location:\s*look at\s+([^:\n]+):(\d+)", prompt, re.IGNORECASE)
+            if location_match:
+                return (PurePosixPath(location_match.group(1)).name, int(location_match.group(2)))
+
         func = raw_data.get("current_function", {})
-        file_path = func.get("file", "")
+        file_path = func.get("file", "") if isinstance(func, dict) else ""
         return (PurePosixPath(file_path).name if file_path else "unknown", int(func.get("start_line", 0)))
 
 

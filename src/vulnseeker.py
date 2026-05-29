@@ -19,6 +19,7 @@ Analysis Pipeline Algorithm:
 
 from pathlib import Path, PurePosixPath
 import csv
+import os
 import re
 import json
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -35,8 +36,110 @@ from src.llm.llm_analyzer import LLMAnalyzer
 from src.utils.config_validator import validate_and_exit_on_error
 from src.utils.logger import get_logger
 from src.utils.exceptions import VulnSeekerError, CodeQLError, LLMApiError
+from src.codeql.db_lookup import CodeQLDBLookup
 
 logger = get_logger(__name__)
+
+
+SECURITY_RELEVANCE_KEYWORDS = (
+    "security",
+    "vulnerab",
+    "cwe",
+    "taint",
+    "injection",
+    "xss",
+    "csrf",
+    "ssrf",
+    "path",
+    "traversal",
+    "command",
+    "deserial",
+    "overflow",
+    "underflow",
+    "out of bounds",
+    "out-of-bounds",
+    "use after free",
+    "double free",
+    "free",
+    "dereference",
+    "memory corruption",
+    "cleartext",
+    "clear-text",
+    "crypto",
+    "credential",
+    "password",
+    "secret",
+    "auth",
+    "permission",
+    "privilege",
+)
+
+
+def env_flag(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def canonical_codeql_lang(lang: str) -> str:
+    """
+    Normalize UI/config language names to CodeQL language names.
+    """
+    normalized = lang.strip().lower()
+    aliases = {
+        "c": "cpp",
+        "cpp": "cpp",
+        "java": "java",
+        "javascript": "javascript",
+        "js": "javascript",
+        "typescript": "javascript",
+        "ts": "javascript",
+        "python": "python",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def is_security_candidate(issue: Dict[str, str]) -> bool:
+    """
+    Keep CodeQL findings that are worth LLM security triage.
+
+    CodeQL's security-and-quality suite can include maintainability findings
+    such as unused locals or commented-out code. Those should stay in raw
+    CodeQL output, but they are noise for VulnSeeker's LLM vulnerability pass.
+    """
+    if not env_flag("VULNSEEKER_LLM_SECURITY_ONLY", True):
+        return True
+
+    issue_type = (issue.get("type") or "").strip().lower()
+    if issue_type != "recommendation":
+        return True
+
+    text = " ".join(
+        str(issue.get(field) or "")
+        for field in ("name", "help", "message")
+    ).lower()
+    return any(keyword in text for keyword in SECURITY_RELEVANCE_KEYWORDS)
+
+
+def normalized_issue_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value or "").strip().lower()
+
+
+def exact_issue_key(issue: Dict[str, str]) -> Tuple[str, ...]:
+    """
+    Deduplicate exact duplicate CodeQL rows before LLM review.
+    """
+    return (
+        issue.get("db_path", ""),
+        issue.get("name", ""),
+        issue.get("file", ""),
+        issue.get("start_line", ""),
+        issue.get("start_offset", ""),
+        issue.get("end_line", ""),
+        issue.get("end_offset", ""),
+        normalized_issue_text(issue.get("message", "")),
+    )
 
 
 class IssueAnalyzer:
@@ -57,6 +160,7 @@ class IssueAnalyzer:
         self.db_path: Optional[str] = None
         self.code_path: Optional[str] = None
         self.config = config
+        self.db_lookup = CodeQLDBLookup()
 
     # ----------------------------------------------------------------------
     # 1. CSV Parsing and Data Gathering
@@ -110,24 +214,54 @@ class IssueAnalyzer:
             CodeQLError: If database folder cannot be accessed or issues cannot be read.
         """
         issues_statistics: Dict[str, List[Dict[str, str]]] = {}
+        seen_issue_keys: set[Tuple[str, ...]] = set()
+        skipped_non_security = 0
+        skipped_duplicates = 0
         
         actual_dbs = get_all_dbs(dbs_dir)
         for curr_db in actual_dbs:
             logger.info("Processing DB: %s", curr_db)
             curr_db_path = Path(curr_db)
+            db_yml_path = curr_db_path / "codeql-database.yml"
+            if db_yml_path.exists():
+                db_yml = read_yml(str(db_yml_path)) or {}
+                db_lang = db_yml.get("primaryLanguage")
+                if db_lang and canonical_codeql_lang(str(db_lang)) != canonical_codeql_lang(self.lang):
+                    logger.info(
+                        "Skipping %s database for %s analyzer.",
+                        canonical_codeql_lang(str(db_lang)),
+                        canonical_codeql_lang(self.lang),
+                    )
+                    continue
+
             function_tree_csv = curr_db_path / "FunctionTree.csv"
             issues_file = curr_db_path / "issues.csv"
             if function_tree_csv.exists() and issues_file.exists():
                 # parse_issues_csv() raises CodeQLError on errors
                 issues = self.parse_issues_csv(str(issues_file))
                 for issue in issues:
+                    issue["db_path"] = curr_db
+                    if not is_security_candidate(issue):
+                        skipped_non_security += 1
+                        continue
+
+                    key = exact_issue_key(issue)
+                    if key in seen_issue_keys:
+                        skipped_duplicates += 1
+                        continue
+                    seen_issue_keys.add(key)
+
                     if issue["name"] not in issues_statistics:
                         issues_statistics[issue["name"]] = []
-                    issue["db_path"] = curr_db
                     issues_statistics[issue["name"]].append(issue)
             else:
                 logger.error("Error: Execute run_codeql_queries.py first!")
                 continue
+
+        if skipped_non_security:
+            logger.info("Skipped %d non-security CodeQL recommendation finding(s) before LLM review.", skipped_non_security)
+        if skipped_duplicates:
+            logger.info("Skipped %d duplicate CodeQL finding row(s) before LLM review.", skipped_duplicates)
 
         return issues_statistics
 
@@ -135,7 +269,13 @@ class IssueAnalyzer:
     # 2. Function and Snippet Extraction
     # ----------------------------------------------------------------------
 
-    def find_function_by_line(self, function_tree_file: str, file_path: str, line: int) -> Optional[Dict[str, str]]:
+    def find_function_by_line(
+        self,
+        function_tree_file: str,
+        file_path: str,
+        line: int,
+        db_path: str | None = None,
+    ) -> Optional[Dict[str, str]]:
         """
         Finds the most specific (smallest) function containing the given file and line number.
 
@@ -155,42 +295,7 @@ class IssueAnalyzer:
         Raises:
             CodeQLError: If function tree file cannot be read (not found, permission denied, etc.).
         """
-        keys = ["function_name", "file", "start_line", "function_id", "end_line", "caller_id"]
-        best_function = None
-        smallest_range = float('inf')
-
-        try:
-            with Path(function_tree_file).open("r", encoding="utf-8") as f:
-                for row in f:
-                    if file_path in row:
-                        fields = re.split(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', row.strip())
-                        if len(fields) != len(keys):
-                            continue  # Skip malformed rows
-
-                        function = dict(zip(keys, fields))
-                        try:
-                            start_line = int(function["start_line"])
-                            end_line = int(function["end_line"])
-                        except ValueError:
-                            continue  # Skip if lines aren't integers
-
-                        # Check if the target line falls within this function's range
-                        if start_line <= line <= end_line:
-                            if file_path in function["file"]:
-                                # Greedy selection: track the function with smallest range
-                                # (most specific/nested function containing the line)
-                                size = end_line - start_line
-                                if size < smallest_range:
-                                    best_function = function
-                                    smallest_range = size
-        except FileNotFoundError as e:
-            raise CodeQLError(f"Function tree file not found: {function_tree_file}") from e
-        except PermissionError as e:
-            raise CodeQLError(f"Permission denied reading function tree file: {function_tree_file}") from e
-        except OSError as e:
-            raise CodeQLError(f"OS error while reading function tree file: {function_tree_file}") from e
-
-        return best_function
+        return self.db_lookup.get_function_by_line(function_tree_file, file_path, line, db_path)
 
     def extract_function_code(self, code_file: List[str], function_dict: Dict[str, str]) -> str:
         """
@@ -358,7 +463,8 @@ class IssueAnalyzer:
         function_tree_file: str,
         current_function: Dict[str, str],
         results_folder: str,
-        issue_id: int
+        issue_id: int,
+        issue: Dict[str, str]
     ) -> None:
         """
         Saves the raw input data (prompt, function tree info, etc.) to a JSON file before
@@ -379,6 +485,17 @@ class IssueAnalyzer:
             "current_function": current_function,
             "db_path": self.db_path,
             "code_path": self.code_path,
+            "issue": {
+                "name": issue.get("name", ""),
+                "help": issue.get("help", ""),
+                "type": issue.get("type", ""),
+                "message": issue.get("message", ""),
+                "file": issue.get("file", ""),
+                "start_line": issue.get("start_line", ""),
+                "start_offset": issue.get("start_offset", ""),
+                "end_line": issue.get("end_line", ""),
+                "end_offset": issue.get("end_offset", ""),
+            },
             "prompt": prompt
         }, ensure_ascii=False)
 
@@ -471,7 +588,12 @@ class IssueAnalyzer:
                 continue
 
             # Find the function containing this reference using the greedy selection algorithm
-            new_function = self.find_function_by_line(function_tree_file, "/" + file_ref, int(line_ref))
+            new_function = self.find_function_by_line(
+                function_tree_file,
+                "/" + file_ref,
+                int(line_ref),
+                self.db_path,
+            )
             # Deduplication: Only add if function was found and not already in the list
             if new_function and new_function not in functions:
                 functions.append(new_function)
@@ -567,7 +689,8 @@ class IssueAnalyzer:
             current_function = self.find_function_by_line(
                 function_tree_file,
                 "/" + self.code_path + issue["file"],
-                int(issue["start_line"])
+                int(issue["start_line"]),
+                self.db_path,
             )
             if not current_function:
                 logger.warning("issue %s: Can't find the function or function is too big!", issue_id)
@@ -600,7 +723,7 @@ class IssueAnalyzer:
             prompt = self.build_prompt_by_template(issue, message, snippet, code)
 
             # Save raw input to the LLM
-            self.save_raw_input_data(prompt, function_tree_file, current_function, results_folder, issue_id)
+            self.save_raw_input_data(prompt, function_tree_file, current_function, results_folder, issue_id, issue)
 
             # Send to LLM (with error handling for timeouts and API errors)
             try:

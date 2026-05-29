@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Col, Popconfirm, Row, Space, Table, Tag, Typography, message } from 'antd';
-import { DeleteOutlined, PlayCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EyeOutlined, PlayCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
@@ -98,11 +98,12 @@ export default function DashboardPage() {
             <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => handleStart(record)}>
               {record.status === 'failed' ? t('dashboard.retry') : t('dashboard.run')}
             </Button>
-          ) : (
-            <Button size="small" onClick={() => navigate(`/tasks/${record.id}`)}>
+          ) : null}
+          {record.status !== 'pending' ? (
+            <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/tasks/${record.id}`)}>
               {t('dashboard.open')}
             </Button>
-          )}
+          ) : null}
           <Popconfirm title={t('dashboard.deleteConfirm')} onConfirm={() => handleDelete(record.id)}>
             <Button danger size="small" icon={<DeleteOutlined />} />
           </Popconfirm>

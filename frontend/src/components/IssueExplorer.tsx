@@ -66,7 +66,20 @@ type Props = {
 };
 
 
+function getIssueKey(issue: IssueSummary): string {
+  return issue.key || `${issue.issue_type}::${issue.id}`;
+}
+
+
 function extractLocationLine(detail: IssueDetail | null): number | null {
+  const rawIssue = detail?.raw_data?.issue;
+  if (rawIssue && typeof rawIssue === 'object' && 'start_line' in rawIssue) {
+    const line = Number(rawIssue.start_line);
+    if (Number.isFinite(line) && line > 0) {
+      return line;
+    }
+  }
+
   const prompt = detail?.raw_data && typeof detail.raw_data.prompt === 'string'
     ? detail.raw_data.prompt
     : '';
@@ -291,7 +304,7 @@ export default function IssueExplorer({
                 className="issue-explorer-table"
                 columns={columns}
                 dataSource={filteredIssues}
-                rowKey={(record) => `${record.issue_type}-${record.id}`}
+                rowKey={(record) => getIssueKey(record)}
                 size="small"
                 tableLayout="fixed"
                 loading={loading}
@@ -301,7 +314,7 @@ export default function IssueExplorer({
                   onClick: () => onIssueSelect(record),
                   style: {
                     cursor: 'pointer',
-                    background: selectedIssue?.id === record.id && selectedIssue.issue_type === record.issue_type
+                    background: selectedIssue && getIssueKey(selectedIssue) === getIssueKey(record)
                       ? '#eef6ff'
                       : undefined,
                   },
@@ -327,7 +340,7 @@ export default function IssueExplorer({
                 <Text type="secondary">{t('issueExplorer.manualDecision')}</Text>
                 <Select
                   value={selectedIssue.manual_decision ?? t('decision.notSet')}
-                  onChange={(value) => onDecisionChange(selectedIssue.id, value === t('decision.notSet') ? null : value)}
+                  onChange={(value) => onDecisionChange(getIssueKey(selectedIssue), value === t('decision.notSet') ? null : value)}
                   style={{ width: 170 }}
                 >
                   {DECISIONS.map((decision) => (
