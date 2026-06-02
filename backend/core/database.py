@@ -62,6 +62,7 @@ async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_upgrade_schema)
+        await conn.run_sync(_ensure_default_admin)
 
 
 def _upgrade_schema(sync_conn) -> None:
@@ -109,3 +110,34 @@ def _upgrade_schema(sync_conn) -> None:
                 "WHERE status IN ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED')"
             )
         )
+
+
+def _ensure_default_admin(sync_conn) -> None:
+    """
+    Ensure a default admin user exists so the administrator can log in
+    immediately after a fresh installation.
+    """
+    if "users" not in inspect(sync_conn).get_table_names():
+        return
+
+    result = sync_conn.execute(
+        text("SELECT id FROM users WHERE username = 'admin' LIMIT 1")
+    )
+    if result.fetchone() is not None:
+        return  # admin already exists — nothing to do
+
+    from core.security import hash_password
+
+    hashed = hash_password("123456")
+    sync_conn.execute(
+        text(
+            "INSERT INTO users (username, email, password_hash, role) "
+            "VALUES (:username, :email, :password_hash, :role)"
+        ),
+        {
+            "username": "admin",
+            "email": "admin@vulnseeker.local",
+            "password_hash": hashed,
+            "role": "admin",
+        },
+    )
