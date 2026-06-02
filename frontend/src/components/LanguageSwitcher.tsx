@@ -14,7 +14,10 @@ export default function LanguageSwitcher() {
         { value: 'zh', label: '中文' },
       ]}
       size="small"
-      style={{ border: '1px solid #d9d9d9' }}
+      block
+      style={{
+        background: 'rgba(255,255,255,0.06)',
+      }}
     />
   );
 }

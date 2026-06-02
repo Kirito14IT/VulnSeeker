@@ -1,12 +1,14 @@
 /**
- * Login page.
+ * Login page — clean, security-focused auth experience.
  */
 
-import { Form, Input, Button, Card, message, Typography } from 'antd';
+import { Form, Input, Button, message, Typography } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../api';
 import { useAuthStore } from '../stores/authStore';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const { Title, Text } = Typography;
 
@@ -29,32 +31,67 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f2f5' }}>
-      <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={3}>VulnSeeker</Title>
-          <Text type="secondary">{t('auth.login.subtitle')}</Text>
+    <div className="auth-page">
+      {/* Language switcher */}
+      <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 10 }}>
+        <LanguageSwitcher />
+      </div>
+
+      <div className="auth-card" style={{ width: 420 }}>
+        {/* Header */}
+        <div className="auth-card-header">
+          <div className="auth-card-logo">VS</div>
+          <Title level={2} className="auth-card-title">VulnSeeker</Title>
+          <Text className="auth-card-subtitle">{t('auth.login.subtitle')}</Text>
         </div>
-        <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item name="username" label={t('auth.login.username')} rules={[{ required: true }]}>
-            <Input placeholder={t('auth.login.usernamePlaceholder')} />
-          </Form.Item>
-          <Form.Item name="password" label={t('auth.login.password')} rules={[{ required: true }]}>
-            <Input.Password placeholder={t('auth.login.passwordPlaceholder')} />
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button type="primary" htmlType="submit" block>
-              {t('auth.login.submit')}
-            </Button>
-          </Form.Item>
-        </Form>
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <Text type="secondary">
+
+        {/* Body */}
+        <div className="auth-card-body">
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            size="large"
+          >
+            <Form.Item
+              name="username"
+              label={t('auth.login.username')}
+              rules={[{ required: true, message: t('auth.login.usernamePlaceholder') }]}
+            >
+              <Input
+                prefix={<UserOutlined style={{ color: 'var(--text-tertiary)' }} />}
+                placeholder={t('auth.login.usernamePlaceholder')}
+                autoFocus
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              label={t('auth.login.password')}
+              rules={[{ required: true, message: t('auth.login.passwordPlaceholder') }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined style={{ color: 'var(--text-tertiary)' }} />}
+                placeholder={t('auth.login.passwordPlaceholder')}
+              />
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
+              <Button type="primary" htmlType="submit" block size="large">
+                {t('auth.login.submit')}
+              </Button>
+            </Form.Item>
+          </Form>
+        </div>
+
+        {/* Footer */}
+        <div className="auth-card-footer">
+          <Text>
             {t('auth.login.noAccount')}{' '}
             <a href="/register">{t('auth.login.registerLink')}</a>
           </Text>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

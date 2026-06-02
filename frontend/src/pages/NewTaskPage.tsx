@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { tasksApi } from '../api';
 import type { TaskCreate, TaskSource } from '../types';
 
-
 const { Title, Paragraph, Text } = Typography;
 
 const SOURCE_HELP_KEYS: Record<TaskSource, { titleKey: string; hintKey: string }> = {
@@ -53,28 +52,20 @@ export default function NewTaskPage() {
   const currentHelp = SOURCE_HELP_KEYS[sourceType as TaskSource];
 
   return (
-    <div style={{ padding: 24 }}>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
+    <div style={{ maxWidth: 920, margin: '0 auto' }}>
+      {/* Back button */}
+      <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')} style={{ marginBottom: 20 }}>
         {t('common.back')}
       </Button>
 
-      <Card
-        style={{
-          maxWidth: 920,
-          margin: '24px auto',
-          borderRadius: 30,
-          border: '1px solid #dbe7f4',
-          background:
-            'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(237,246,255,0.96) 42%, rgba(248,250,252,0.98) 100%)',
-          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+      {/* Main form card */}
+      <div className="hero-card" style={{ padding: '28px 32px' }}>
         <Space direction="vertical" size={20} style={{ width: '100%' }}>
           <div>
-            <Title level={2} style={{ marginBottom: 8, fontFamily: 'Georgia, serif' }}>
+            <Title level={2} className="hero-title" style={{ marginBottom: 8 }}>
               {t('newTask.title')}
             </Title>
-            <Paragraph type="secondary" style={{ maxWidth: 700, marginBottom: 0 }}>
+            <Paragraph className="hero-subtitle" style={{ marginBottom: 0 }}>
               {t('newTask.description')}
             </Paragraph>
           </div>
@@ -85,7 +76,7 @@ export default function NewTaskPage() {
               showIcon
               message={t(currentHelp.titleKey)}
               description={t(currentHelp.hintKey)}
-              style={{ borderRadius: 18 }}
+              style={{ borderRadius: 'var(--radius-md)' }}
             />
           )}
 
@@ -159,8 +150,9 @@ export default function NewTaskPage() {
               size="small"
               style={{
                 marginBottom: 24,
-                borderRadius: 18,
-                background: 'rgba(255,255,255,0.72)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <Space direction="vertical" size={4}>
@@ -186,7 +178,7 @@ export default function NewTaskPage() {
             </Form.Item>
           </Form>
         </Space>
-      </Card>
+      </div>
     </div>
   );
 }

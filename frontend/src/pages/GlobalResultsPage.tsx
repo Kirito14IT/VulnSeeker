@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Space, Typography, message } from 'antd';
+import { Button, Space, Typography, message } from 'antd';
 import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -8,9 +8,7 @@ import { legacyApi } from '../api';
 import IssueExplorer from '../components/IssueExplorer';
 import type { IssueDetail, IssueSummary } from '../types';
 
-
 const { Title, Paragraph } = Typography;
-
 
 export default function GlobalResultsPage() {
   const navigate = useNavigate();
@@ -69,15 +67,9 @@ export default function GlobalResultsPage() {
   }, [loadIssues]);
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        style={{
-          marginBottom: 16,
-          borderRadius: 28,
-          border: '1px solid #dbe7f4',
-          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+    <>
+      {/* Hero */}
+      <div className="hero-card" style={{ padding: '20px 28px', marginBottom: 20 }}>
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/')}>
@@ -87,14 +79,14 @@ export default function GlobalResultsPage() {
               {t('globalResults.reload')}
             </Button>
           </Space>
-          <Title level={3} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>
+          <Title level={3} className="hero-title" style={{ margin: 0 }}>
             {t('globalResults.title')}
           </Title>
-          <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          <Paragraph className="hero-subtitle" style={{ marginBottom: 0 }}>
             {t('globalResults.description')}
           </Paragraph>
         </Space>
-      </Card>
+      </div>
 
       <IssueExplorer
         issues={issues}
@@ -105,6 +97,6 @@ export default function GlobalResultsPage() {
         onIssueSelect={loadIssueDetail}
         onDecisionChange={handleDecisionChange}
       />
-    </div>
+    </>
   );
 }

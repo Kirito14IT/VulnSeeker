@@ -1,15 +1,16 @@
 /**
- * Main App component with routing and auth guard.
+ * Main App component — routing, auth guards, theme, and layout.
  */
 
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, App as AntApp } from 'antd';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { ConfigProvider, App as AntApp, theme } from 'antd';
 import enUS from 'antd/locale/en_US';
 import zhCN from 'antd/locale/zh_CN';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from './stores/authStore';
-import LanguageSwitcher from './components/LanguageSwitcher';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import AppLayout from './components/AppLayout';
 
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -21,22 +22,27 @@ import GlobalResultsPage from './pages/GlobalResultsPage';
 import LegacySupportPage from './pages/LegacySupportPage';
 import AdminPage from './pages/AdminPage';
 
-const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode; requiredRole?: string }) => {
+/* ── Route guards ─────────────────────────────────────────────────────────── */
+
+function ProtectedRoute({ requiredRole }: { requiredRole?: string }) {
   const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (requiredRole && user?.role !== requiredRole) return <Navigate to="/" replace />;
-  return <>{children}</>;
-};
+  return <Outlet />;
+}
 
-const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+function PublicRoute() {
   const { isAuthenticated, user } = useAuthStore();
   if (isAuthenticated) return <Navigate to={user?.role === 'admin' ? '/admin' : '/'} replace />;
-  return <>{children}</>;
-};
+  return <Outlet />;
+}
 
-function App() {
+/* ── Inner app (has access to theme context) ───────────────────────────────── */
+
+function ThemedApp() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const { i18n } = useTranslation();
+  const { isDark } = useTheme();
 
   const [antdLocale, setAntdLocale] = useState(
     i18n.language.startsWith('zh') ? zhCN : enUS,
@@ -53,66 +59,82 @@ function App() {
     };
     i18n.on('languageChanged', handler);
     document.documentElement.lang = i18n.language.startsWith('zh') ? 'zh' : 'en';
-    return () => { i18n.off('languageChanged', handler); };
+    return () => {
+      i18n.off('languageChanged', handler);
+    };
   }, [i18n]);
 
   return (
     <ConfigProvider
       locale={antdLocale}
       theme={{
+        algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: '#0f766e',
-          colorInfo: '#0f766e',
-          colorSuccess: '#15803d',
-          colorWarning: '#d97706',
-          colorError: '#dc2626',
-          borderRadius: 12,
-          fontFamily: '"IBM Plex Sans", "Segoe UI", sans-serif',
+          colorPrimary: isDark ? '#22d3ee' : '#0891b2',
+          colorInfo: isDark ? '#22d3ee' : '#0891b2',
+          colorSuccess: isDark ? '#34d399' : '#16a34a',
+          colorWarning: isDark ? '#fbbf24' : '#d97706',
+          colorError: isDark ? '#f87171' : '#dc2626',
+          borderRadius: 10,
+          fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+          fontSize: 14,
+          colorLink: isDark ? '#22d3ee' : '#0891b2',
+        },
+        components: {
+          Card: {
+            paddingLG: 24,
+          },
+          Table: {
+            headerBg: isDark ? '#0f1424' : '#f8fafc',
+            rowHoverBg: isDark ? 'rgba(34, 211, 238, 0.04)' : 'rgba(8, 145, 178, 0.03)',
+          },
+          Tag: {
+            borderRadiusSM: 6,
+          },
         },
       }}
     >
       <AntApp>
-        <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000 }}>
-          <LanguageSwitcher />
-        </div>
         <BrowserRouter>
           <Routes>
-            <Route
-              path="/login"
-              element={<PublicRoute><LoginPage /></PublicRoute>}
-            />
-            <Route
-              path="/register"
-              element={<PublicRoute><RegisterPage /></PublicRoute>}
-            />
-            <Route
-              path="/"
-              element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/tasks/new"
-              element={<ProtectedRoute><NewTaskPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/tasks/:taskId"
-              element={<ProtectedRoute><TaskResultPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/tasks/:taskId/visualization"
-              element={<ProtectedRoute><TaskVisualizationPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/result/results"
-              element={<ProtectedRoute><GlobalResultsPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/result/stats"
-              element={<ProtectedRoute requiredRole="admin"><LegacySupportPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/admin"
-              element={<ProtectedRoute requiredRole="admin"><AdminPage /></ProtectedRoute>}
-            />
+            {/* Public routes — no sidebar */}
+            <Route element={<PublicRoute />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+            </Route>
+
+            {/* Protected routes — with sidebar layout */}
+            <Route element={<ProtectedRoute />}>
+              <Route
+                element={
+                  <AppLayout>
+                    <Outlet />
+                  </AppLayout>
+                }
+              >
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/tasks/new" element={<NewTaskPage />} />
+                <Route path="/tasks/:taskId" element={<TaskResultPage />} />
+                <Route path="/tasks/:taskId/visualization" element={<TaskVisualizationPage />} />
+                <Route path="/result/results" element={<GlobalResultsPage />} />
+              </Route>
+
+              {/* Admin routes — with sidebar layout */}
+              <Route element={<ProtectedRoute requiredRole="admin" />}>
+                <Route
+                  element={
+                    <AppLayout>
+                      <Outlet />
+                    </AppLayout>
+                  }
+                >
+                  <Route path="/result/stats" element={<LegacySupportPage />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                </Route>
+              </Route>
+            </Route>
+
+            {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
@@ -121,4 +143,12 @@ function App() {
   );
 }
 
-export default App;
+/* ── Root ──────────────────────────────────────────────────────────────────── */
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <ThemedApp />
+    </ThemeProvider>
+  );
+}

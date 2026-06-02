@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, Col, Row, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Alert, Button, Col, Row, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import { ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -8,9 +8,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { legacyApi, systemApi } from '../api';
 import type { ConfigValidationResponse, RepoStat } from '../types';
 
-
 const { Title, Paragraph, Text } = Typography;
-
 
 export default function LegacySupportPage() {
   const navigate = useNavigate();
@@ -65,15 +63,9 @@ export default function LegacySupportPage() {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        style={{
-          marginBottom: 16,
-          borderRadius: 28,
-          border: '1px solid #dbe7f4',
-          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+    <>
+      {/* Hero */}
+      <div className="hero-card" style={{ padding: '20px 28px', marginBottom: 20 }}>
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Space wrap style={{ justifyContent: 'space-between', width: '100%' }}>
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/admin')}>
@@ -88,34 +80,37 @@ export default function LegacySupportPage() {
               </Button>
             </Space>
           </Space>
-          <Title level={3} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>
+          <Title level={3} className="hero-title" style={{ margin: 0 }}>
             {t('legacySupport.title')}
           </Title>
-          <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          <Paragraph className="hero-subtitle" style={{ marginBottom: 0 }}>
             {t('legacySupport.description')}
           </Paragraph>
         </Space>
-      </Card>
+      </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      {/* KPI row */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }} className="stagger-children">
         <Col xs={24} lg={8}>
-          <Card loading={loading} style={{ borderRadius: 22 }}>
-            <Statistic title={t('legacySupport.reposWithResults')} value={stats.length} />
-          </Card>
+          <div className="kpi-card" style={{ padding: '20px 24px' }}>
+            <Statistic title={t('legacySupport.reposWithResults')} value={stats.length} loading={loading} />
+          </div>
         </Col>
         <Col xs={24} lg={8}>
-          <Card loading={loading} style={{ borderRadius: 22 }}>
-            <Statistic title={t('legacySupport.totalIndexedIssues')} value={stats.reduce((sum, item) => sum + item.total, 0)} />
-          </Card>
+          <div className="kpi-card" style={{ padding: '20px 24px' }}>
+            <Statistic title={t('legacySupport.totalIndexedIssues')} value={stats.reduce((sum, item) => sum + item.total, 0)} loading={loading} />
+          </div>
         </Col>
         <Col xs={24} lg={8}>
-          <Card loading={loading} style={{ borderRadius: 22 }}>
+          <div className="kpi-card" style={{ padding: '20px 24px' }}>
             <Statistic title={t('legacySupport.configStatus')} value={validation?.valid ? t('legacySupport.configValid') : t('legacySupport.configNeedsAttention')} />
-          </Card>
+          </div>
         </Col>
       </Row>
 
-      <Card title={t('legacySupport.configValidation')} style={{ marginBottom: 16, borderRadius: 24 }}>
+      {/* Config validation */}
+      <div className="content-card" style={{ padding: '16px 24px', marginBottom: 20 }}>
+        <Title level={5} style={{ margin: '0 0 12px', fontFamily: 'var(--font-heading)' }}>{t('legacySupport.configValidation')}</Title>
         {validation && (
           validation.valid ? (
             <Alert type="success" showIcon message={t('legacySupport.configPassed')} />
@@ -134,13 +129,14 @@ export default function LegacySupportPage() {
             />
           )
         )}
-      </Card>
+      </div>
 
-      <Card
-        title={t('legacySupport.repoStatistics')}
-        extra={<Tag color="blue">{t('legacySupport.reposCount', { count: stats.length })}</Tag>}
-        style={{ borderRadius: 24 }}
-      >
+      {/* Repo stats table */}
+      <div className="content-card" style={{ padding: 0 }}>
+        <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Title level={5} style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{t('legacySupport.repoStatistics')}</Title>
+          <Tag color="blue">{t('legacySupport.reposCount', { count: stats.length })}</Tag>
+        </div>
         <Table
           columns={columns}
           dataSource={stats}
@@ -148,7 +144,7 @@ export default function LegacySupportPage() {
           loading={loading}
           pagination={{ pageSize: 12, showSizeChanger: false, hideOnSinglePage: true }}
         />
-      </Card>
-    </div>
+      </div>
+    </>
   );
 }

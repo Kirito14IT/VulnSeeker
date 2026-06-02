@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Button, Card, Col, Form, Input, Modal, Popconfirm, Row, Select, Space,
+  Button, Col, Form, Input, Modal, Popconfirm, Row, Select, Space,
   Table, Tabs, Tag, Typography, message,
 } from 'antd';
 import {
@@ -17,7 +17,7 @@ import { getTaskPresentation } from '../utils/taskPresentation';
 
 const { Title, Text } = Typography;
 
-// ── Users tab ────────────────────────────────────────────────────────────────
+/* ── Users tab ──────────────────────────────────────────────────────────────── */
 
 function UsersTab({ me }: { me: User | null }) {
   const { t } = useTranslation();
@@ -121,31 +121,27 @@ function UsersTab({ me }: { me: User | null }) {
 
   return (
     <>
-      <Card
-        extra={
-          <Space wrap>
-            <Input.Search
-              placeholder={t('admin.users.searchPlaceholder')}
-              allowClear
-              onSearch={setSearchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: 200 }}
-            />
-            <Select placeholder={t('admin.users.allRoles')} allowClear style={{ width: 120 }}
-              onChange={(v) => setRoleFilter(v ?? null)}>
-              <Select.Option value="user">{t('admin.users.roleUser')}</Select.Option>
-              <Select.Option value="admin">{t('admin.users.roleAdmin')}</Select.Option>
-            </Select>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              {t('admin.users.createUser')}
-            </Button>
-          </Space>
-        }
-        style={{ borderRadius: 24, border: '1px solid #e5e7eb' }}
-      >
+      <div className="content-card" style={{ padding: 0 }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+          <Input.Search
+            placeholder={t('admin.users.searchPlaceholder')}
+            allowClear
+            onSearch={setSearchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 200 }}
+          />
+          <Select placeholder={t('admin.users.allRoles')} allowClear style={{ width: 120 }}
+            onChange={(v) => setRoleFilter(v ?? null)}>
+            <Select.Option value="user">{t('admin.users.roleUser')}</Select.Option>
+            <Select.Option value="admin">{t('admin.users.roleAdmin')}</Select.Option>
+          </Select>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+            {t('admin.users.createUser')}
+          </Button>
+        </div>
         <Table columns={columns} dataSource={filteredUsers} rowKey="id" loading={loading}
           pagination={{ pageSize: 12, showSizeChanger: false, hideOnSinglePage: true }} />
-      </Card>
+      </div>
 
       <Modal title={t('admin.users.createUser')} open={createOpen}
         onCancel={() => { setCreateOpen(false); createForm.resetFields(); }}
@@ -176,7 +172,7 @@ function UsersTab({ me }: { me: User | null }) {
   );
 }
 
-// ── Tasks tab ────────────────────────────────────────────────────────────────
+/* ── Tasks tab ──────────────────────────────────────────────────────────────── */
 
 function TasksTab() {
   const { t } = useTranslation();
@@ -213,7 +209,6 @@ function TasksTab() {
     return true;
   });
 
-  // ── Create ──────────────────────────────────────────────────────────
   const handleCreate = async (values: { user_id: number; repo_url: string; language: string; source_type: string }) => {
     setSubmitting(true);
     try {
@@ -228,7 +223,6 @@ function TasksTab() {
     } finally { setSubmitting(false) }
   };
 
-  // ── Update ──────────────────────────────────────────────────────────
   const openEdit = (t: TaskWithUser) => {
     setEditTask(t);
     editForm.setFieldsValue({
@@ -255,7 +249,6 @@ function TasksTab() {
     } finally { setSubmitting(false) }
   };
 
-  // ── Delete ──────────────────────────────────────────────────────────
   const handleDelete = async (id: number) => {
     try {
       await adminApi.deleteTask(id);
@@ -305,35 +298,30 @@ function TasksTab() {
 
   return (
     <>
-      <Card
-        extra={
-          <Space wrap>
-            <Input.Search
-              placeholder={t('admin.tasks.searchPlaceholder')}
-              allowClear
-              onSearch={setSearchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: 220 }}
-            />
-            <Select placeholder={t('admin.tasks.allStatuses')} allowClear style={{ width: 130 }}
-              onChange={(v) => setStatusFilter(v ?? null)}>
-              <Select.Option value="pending">{t('admin.tasks.statusPending')}</Select.Option>
-              <Select.Option value="running">{t('admin.tasks.statusRunning')}</Select.Option>
-              <Select.Option value="completed">{t('admin.tasks.statusCompleted')}</Select.Option>
-              <Select.Option value="failed">{t('admin.tasks.statusFailed')}</Select.Option>
-            </Select>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              {t('admin.tasks.createTask')}
-            </Button>
-          </Space>
-        }
-        style={{ borderRadius: 24, border: '1px solid #e5e7eb' }}
-      >
+      <div className="content-card" style={{ padding: 0 }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+          <Input.Search
+            placeholder={t('admin.tasks.searchPlaceholder')}
+            allowClear
+            onSearch={setSearchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 220 }}
+          />
+          <Select placeholder={t('admin.tasks.allStatuses')} allowClear style={{ width: 130 }}
+            onChange={(v) => setStatusFilter(v ?? null)}>
+            <Select.Option value="pending">{t('admin.tasks.statusPending')}</Select.Option>
+            <Select.Option value="running">{t('admin.tasks.statusRunning')}</Select.Option>
+            <Select.Option value="completed">{t('admin.tasks.statusCompleted')}</Select.Option>
+            <Select.Option value="failed">{t('admin.tasks.statusFailed')}</Select.Option>
+          </Select>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+            {t('admin.tasks.createTask')}
+          </Button>
+        </div>
         <Table columns={columns} dataSource={filteredTasks} rowKey="id" loading={loading}
           pagination={{ pageSize: 12, showSizeChanger: false, hideOnSinglePage: true }} />
-      </Card>
+      </div>
 
-      {/* Create task modal */}
       <Modal title={t('admin.tasks.createTask')} open={createOpen}
         onCancel={() => { setCreateOpen(false); createForm.resetFields(); }}
         onOk={() => createForm.submit()} confirmLoading={submitting}>
@@ -370,7 +358,6 @@ function TasksTab() {
         </Form>
       </Modal>
 
-      {/* Edit task modal */}
       <Modal title={t('admin.tasks.editTask', { id: editTask?.id })} open={!!editTask}
         onCancel={() => { setEditTask(null); editForm.resetFields(); }}
         onOk={() => editForm.submit()} confirmLoading={submitting}>
@@ -418,7 +405,7 @@ function TasksTab() {
   );
 }
 
-// ── Tools tab ────────────────────────────────────────────────────────────────
+/* ── Tools tab ──────────────────────────────────────────────────────────────── */
 
 function ToolsTab() {
   const { t } = useTranslation();
@@ -427,23 +414,23 @@ function ToolsTab() {
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} md={8}>
-        <Card
-          hoverable
+        <div
+          className="nav-card"
           onClick={() => navigate('/result/stats')}
-          style={{ borderRadius: 24, minHeight: 150 }}
+          style={{ padding: '20px 24px' }}
         >
           <Space direction="vertical" size={8}>
-            <Tag color="cyan">{t('admin.tools.cliHelpers')}</Tag>
-            <Title level={4} style={{ margin: 0 }}>{t('admin.tools.statsValidation')}</Title>
+            <Tag color="cyan" className="nav-card-tag">{t('admin.tools.cliHelpers')}</Tag>
+            <Title level={4} style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{t('admin.tools.statsValidation')}</Title>
             <Text type="secondary">{t('admin.tools.statsValidationDesc')}</Text>
           </Space>
-        </Card>
+        </div>
       </Col>
     </Row>
   );
 }
 
-// ── Main AdminPage ───────────────────────────────────────────────────────────
+/* ── Main AdminPage ─────────────────────────────────────────────────────────── */
 
 export default function AdminPage() {
   const { t } = useTranslation();
@@ -453,19 +440,12 @@ export default function AdminPage() {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
-    <div style={{ padding: 24 }}>
-      {/* Header */}
-      <Card
-        style={{
-          marginBottom: 16, borderRadius: 30,
-          border: '1px solid #dbe7f4',
-          background: 'radial-gradient(circle at top left, rgba(255,255,255,0.98), rgba(232,244,255,0.96) 42%, rgba(248,250,252,0.98) 100%)',
-          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+    <>
+      {/* Hero */}
+      <div className="hero-card" style={{ padding: '20px 28px', marginBottom: 20 }}>
         <Row justify="space-between" align="middle">
           <Col>
-            <Title level={2} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>{t('admin.title')}</Title>
+            <Title level={2} className="hero-title" style={{ margin: 0 }}>{t('admin.title')}</Title>
             <Text type="secondary">{t('admin.subtitle')}</Text>
           </Col>
           <Col>
@@ -475,9 +455,8 @@ export default function AdminPage() {
             </Space>
           </Col>
         </Row>
-      </Card>
+      </div>
 
-      {/* Tabs */}
       <Tabs
         items={[
           { key: 'users', label: t('admin.tabs.users'), children: <UsersTab me={me} /> },
@@ -485,6 +464,6 @@ export default function AdminPage() {
           { key: 'tools', label: t('admin.tabs.tools'), children: <ToolsTab /> },
         ]}
       />
-    </div>
+    </>
   );
 }
