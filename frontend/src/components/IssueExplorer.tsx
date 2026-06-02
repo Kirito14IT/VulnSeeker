@@ -22,7 +22,6 @@ import { useTranslation } from 'react-i18next';
 import type { IssueDetail, IssueSummary } from '../types';
 import MarkdownSummary from './MarkdownSummary';
 
-
 const { Text, Paragraph } = Typography;
 
 const DECISION_COLORS: Record<string, string> = {
@@ -65,11 +64,9 @@ type Props = {
   controlsExtra?: ReactNode;
 };
 
-
 function getIssueKey(issue: IssueSummary): string {
   return issue.key || `${issue.issue_type}::${issue.id}`;
 }
-
 
 function extractLocationLine(detail: IssueDetail | null): number | null {
   const rawIssue = detail?.raw_data?.issue;
@@ -87,44 +84,16 @@ function extractLocationLine(detail: IssueDetail | null): number | null {
   return match ? Number(match[1]) : null;
 }
 
-
 function CodeBlock({ content, highlightLine }: { content: string; highlightLine: number | null }) {
   const { t } = useTranslation();
   const lines = content.split('\n');
 
   return (
-    <div
-      style={{
-        borderRadius: 16,
-        overflow: 'hidden',
-        border: '1px solid #e5e7eb',
-        background:
-          'linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.96) 100%)',
-      }}
-    >
-      <div
-        style={{
-          padding: '10px 14px',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          color: '#94a3b8',
-          fontSize: 12,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-        }}
-      >
+    <div className="code-block-wrapper">
+      <div className="code-block-header">
         {t('issueExplorer.codeContext')}
       </div>
-      <pre
-        style={{
-          margin: 0,
-          padding: 16,
-          overflowX: 'auto',
-          color: '#e2e8f0',
-          fontSize: 12,
-          lineHeight: 1.7,
-          fontFamily: 'JetBrains Mono, Fira Code, monospace',
-        }}
-      >
+      <pre className="code-block-pre">
         {lines.map((line, index) => {
           const lineMatch = line.match(/^\s*(\d+):/);
           const isHighlighted = lineMatch && highlightLine !== null && Number(lineMatch[1]) === highlightLine;
@@ -146,7 +115,6 @@ function CodeBlock({ content, highlightLine }: { content: string; highlightLine:
     </div>
   );
 }
-
 
 export default function IssueExplorer({
   issues,
@@ -244,15 +212,8 @@ export default function IssueExplorer({
 
   return (
     <>
-      <Card
-        size="small"
-        style={{
-          marginBottom: 12,
-          borderRadius: 20,
-          border: '1px solid #e5e7eb',
-          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.06)',
-        }}
-      >
+      {/* Filter bar */}
+      <div className="filter-card" style={{ padding: '10px 16px', marginBottom: 12 }}>
         <Space wrap size={[12, 12]} style={{ width: '100%', justifyContent: 'space-between' }}>
           <Space wrap>
             <Input.Search
@@ -282,147 +243,147 @@ export default function IssueExplorer({
             {controlsExtra}
           </Space>
         </Space>
-      </Card>
+      </div>
 
       <Row gutter={16} align="top">
+        {/* Issue list */}
         <Col xs={24} xl={11}>
-          <Card
-            size="small"
-            title={t('issueExplorer.issues')}
-            style={{
-              borderRadius: 24,
-              height: EXPLORER_CARD_HEIGHT,
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 18px 40px rgba(15, 23, 42, 0.06)',
-            }}
-            bodyStyle={{ padding: 0, height: EXPLORER_CARD_HEIGHT - 56, overflow: 'hidden' }}
-          >
-            {filteredIssues.length === 0 && !loading ? (
-              <Empty description={t('issueExplorer.noFilterResults')} style={{ margin: '56px 0' }} />
-            ) : (
-              <Table
-                className="issue-explorer-table"
-                columns={columns}
-                dataSource={filteredIssues}
-                rowKey={(record) => getIssueKey(record)}
-                size="small"
-                tableLayout="fixed"
-                loading={loading}
-                pagination={{ pageSize: ISSUE_PAGE_SIZE, showSizeChanger: false, hideOnSinglePage: true }}
-                scroll={{ y: ISSUE_TABLE_HEIGHT }}
-                onRow={(record) => ({
-                  onClick: () => onIssueSelect(record),
-                  style: {
-                    cursor: 'pointer',
-                    background: selectedIssue && getIssueKey(selectedIssue) === getIssueKey(record)
-                      ? '#eef6ff'
-                      : undefined,
-                  },
-                })}
-              />
-            )}
-          </Card>
+          <div className="content-card" style={{ padding: 0, height: EXPLORER_CARD_HEIGHT }}>
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+              <Text strong style={{ fontFamily: 'var(--font-heading)' }}>{t('issueExplorer.issues')}</Text>
+            </div>
+            <div style={{ height: EXPLORER_CARD_HEIGHT - 45, overflow: 'hidden' }}>
+              {filteredIssues.length === 0 && !loading ? (
+                <Empty description={t('issueExplorer.noFilterResults')} style={{ margin: '56px 0' }} />
+              ) : (
+                <Table
+                  className="issue-explorer-table"
+                  columns={columns}
+                  dataSource={filteredIssues}
+                  rowKey={(record) => getIssueKey(record)}
+                  size="small"
+                  tableLayout="fixed"
+                  loading={loading}
+                  pagination={{ pageSize: ISSUE_PAGE_SIZE, showSizeChanger: false, hideOnSinglePage: true }}
+                  scroll={{ y: ISSUE_TABLE_HEIGHT }}
+                  onRow={(record) => ({
+                    onClick: () => onIssueSelect(record),
+                    style: {
+                      cursor: 'pointer',
+                      background: selectedIssue && getIssueKey(selectedIssue) === getIssueKey(record)
+                        ? 'var(--accent-soft)'
+                        : undefined,
+                    },
+                  })}
+                />
+              )}
+            </div>
+          </div>
         </Col>
 
+        {/* Issue detail */}
         <Col xs={24} xl={13}>
-          <Card
-            size="small"
-            title={selectedIssue ? t('issueExplorer.issueLabel', { id: selectedIssue.id }) : t('issueExplorer.issueDetail')}
-            style={{
-              borderRadius: 24,
-              border: '1px solid #e5e7eb',
-              height: EXPLORER_CARD_HEIGHT,
-              boxShadow: '0 18px 40px rgba(15, 23, 42, 0.06)',
-            }}
-            bodyStyle={{ height: EXPLORER_CARD_HEIGHT - 56, overflow: 'hidden' }}
-            extra={selectedIssue && selectedIssue.finalized ? (
-              <Space>
-                <Text type="secondary">{t('issueExplorer.manualDecision')}</Text>
-                <Select
-                  value={selectedIssue.manual_decision ?? t('decision.notSet')}
-                  onChange={(value) => onDecisionChange(getIssueKey(selectedIssue), value === t('decision.notSet') ? null : value)}
-                  style={{ width: 170 }}
-                >
-                  {DECISIONS.map((decision) => (
-                    <Select.Option key={decision} value={decision}>
-                      {t('decision.' + {
-                        'True Positive': 'truePositive',
-                        'False Positive': 'falsePositive',
-                        'Uncertain': 'uncertain',
-                      }[decision])}
-                    </Select.Option>
-                  ))}
-                  <Select.Option value={t('decision.notSet')}>{t('decision.notSet')}</Select.Option>
-                </Select>
-              </Space>
-            ) : selectedIssue ? (
-              <Text type="secondary">{t('issueExplorer.llmNotFinalized')}</Text>
-            ) : null}
-          >
-            {!selectedIssue ? (
-              <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>
-                <Empty description={t('issueExplorer.noSelection')} />
-              </div>
-            ) : detailLoading || !issueDetail ? (
-              <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>
-                <Spin size="large" />
-              </div>
-            ) : (
-              <div style={{ height: DETAIL_CONTENT_HEIGHT, overflowY: 'auto', paddingRight: 6 }}>
-                <Space wrap style={{ marginBottom: 12 }}>
-                  <Tag color={STATUS_COLORS[issueDetail.status]}>
-                    {t('decision.' + STATUS_TO_KEY[issueDetail.status])}
-                  </Tag>
-                  {!issueDetail.finalized && <Tag color="blue">{t('issueExplorer.rawOnly')}</Tag>}
-                  <Text strong>{issueDetail.name}</Text>
+          <div className="content-card" style={{ padding: 0, height: EXPLORER_CARD_HEIGHT }}>
+            <div style={{
+              padding: '12px 20px',
+              borderBottom: '1px solid var(--border-subtle)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <Text strong style={{ fontFamily: 'var(--font-heading)' }}>
+                {selectedIssue ? t('issueExplorer.issueLabel', { id: selectedIssue.id }) : t('issueExplorer.issueDetail')}
+              </Text>
+              {selectedIssue && selectedIssue.finalized ? (
+                <Space>
+                  <Text type="secondary">{t('issueExplorer.manualDecision')}</Text>
+                  <Select
+                    value={selectedIssue.manual_decision ?? t('decision.notSet')}
+                    onChange={(value) => onDecisionChange(getIssueKey(selectedIssue), value === t('decision.notSet') ? null : value)}
+                    style={{ width: 170 }}
+                  >
+                    {DECISIONS.map((decision) => (
+                      <Select.Option key={decision} value={decision}>
+                        {t('decision.' + {
+                          'True Positive': 'truePositive',
+                          'False Positive': 'falsePositive',
+                          'Uncertain': 'uncertain',
+                        }[decision])}
+                      </Select.Option>
+                    ))}
+                    <Select.Option value={t('decision.notSet')}>{t('decision.notSet')}</Select.Option>
+                  </Select>
                 </Space>
+              ) : selectedIssue ? (
+                <Text type="secondary">{t('issueExplorer.llmNotFinalized')}</Text>
+              ) : null}
+            </div>
+            <div style={{ height: EXPLORER_CARD_HEIGHT - 45, overflow: 'hidden' }}>
+              {!selectedIssue ? (
+                <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>
+                  <Empty description={t('issueExplorer.noSelection')} />
+                </div>
+              ) : detailLoading || !issueDetail ? (
+                <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>
+                  <Spin size="large" />
+                </div>
+              ) : (
+                <div style={{ height: DETAIL_CONTENT_HEIGHT, overflowY: 'auto', padding: '16px 20px' }}>
+                  <Space wrap style={{ marginBottom: 12 }}>
+                    <Tag color={STATUS_COLORS[issueDetail.status]}>
+                      {t('decision.' + STATUS_TO_KEY[issueDetail.status])}
+                    </Tag>
+                    {!issueDetail.finalized && <Tag color="blue">{t('issueExplorer.rawOnly')}</Tag>}
+                    <Text strong>{issueDetail.name}</Text>
+                  </Space>
 
-                <Descriptions column={2} size="small" bordered>
-                  <Descriptions.Item label={t('issueExplorer.repository')}>{issueDetail.repo}</Descriptions.Item>
-                  <Descriptions.Item label={t('issueExplorer.issueType')}>{issueDetail.issue_type}</Descriptions.Item>
-                  <Descriptions.Item label={t('issueExplorer.file')}>{issueDetail.file}:{issueDetail.line}</Descriptions.Item>
-                  <Descriptions.Item label={t('issueExplorer.function')}>{functionName ?? t('issueExplorer.nA')}</Descriptions.Item>
-                </Descriptions>
+                  <Descriptions column={2} size="small" bordered>
+                    <Descriptions.Item label={t('issueExplorer.repository')}>{issueDetail.repo}</Descriptions.Item>
+                    <Descriptions.Item label={t('issueExplorer.issueType')}>{issueDetail.issue_type}</Descriptions.Item>
+                    <Descriptions.Item label={t('issueExplorer.file')}>{issueDetail.file}:{issueDetail.line}</Descriptions.Item>
+                    <Descriptions.Item label={t('issueExplorer.function')}>{functionName ?? t('issueExplorer.nA')}</Descriptions.Item>
+                  </Descriptions>
 
-                {issueDetail.snippets.length > 0 && (
-                  <>
-                    <Divider />
-                    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                      {issueDetail.snippets.map((snippet) => (
-                        <div key={`${snippet.label}-${snippet.content.slice(0, 12)}`}>
-                          <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-                            {snippet.label}
-                          </Text>
-                          <CodeBlock content={snippet.content} highlightLine={highlightLine} />
-                        </div>
-                      ))}
-                    </Space>
-                  </>
-                )}
+                  {issueDetail.snippets.length > 0 && (
+                    <>
+                      <Divider />
+                      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                        {issueDetail.snippets.map((snippet) => (
+                          <div key={`${snippet.label}-${snippet.content.slice(0, 12)}`}>
+                            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+                              {snippet.label}
+                            </Text>
+                            <CodeBlock content={snippet.content} highlightLine={highlightLine} />
+                          </div>
+                        ))}
+                      </Space>
+                    </>
+                  )}
 
-                <Divider />
-                <Space wrap style={{ width: '100%', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text strong>{selectedIssueFinalized ? t('issueExplorer.llmFinalAnswer') : t('issueExplorer.rawMatchSummary')}</Text>
-                  <Segmented
-                    size="small"
-                    value={summaryMode}
-                    onChange={(value) => setSummaryMode(value as 'rendered' | 'raw')}
-                    options={[
-                      { label: t('issueExplorer.rendered'), value: 'rendered' },
-                      { label: t('issueExplorer.raw'), value: 'raw' },
-                    ]}
-                  />
-                </Space>
-                {summaryMode === 'rendered' ? (
-                  <MarkdownSummary content={issueDetail.summary || t('issueExplorer.noSummary')} />
-                ) : (
-                  <Paragraph style={{ marginTop: 8, whiteSpace: 'pre-wrap', fontSize: 13 }}>
-                    {issueDetail.summary || t('issueExplorer.noSummary')}
-                  </Paragraph>
-                )}
-              </div>
-            )}
-          </Card>
+                  <Divider />
+                  <Space wrap style={{ width: '100%', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text strong>{selectedIssueFinalized ? t('issueExplorer.llmFinalAnswer') : t('issueExplorer.rawMatchSummary')}</Text>
+                    <Segmented
+                      size="small"
+                      value={summaryMode}
+                      onChange={(value) => setSummaryMode(value as 'rendered' | 'raw')}
+                      options={[
+                        { label: t('issueExplorer.rendered'), value: 'rendered' },
+                        { label: t('issueExplorer.raw'), value: 'raw' },
+                      ]}
+                    />
+                  </Space>
+                  {summaryMode === 'rendered' ? (
+                    <MarkdownSummary content={issueDetail.summary || t('issueExplorer.noSummary')} />
+                  ) : (
+                    <Paragraph style={{ marginTop: 8, whiteSpace: 'pre-wrap', fontSize: 13 }}>
+                      {issueDetail.summary || t('issueExplorer.noSummary')}
+                    </Paragraph>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </Col>
       </Row>
     </>

@@ -16,6 +16,16 @@
       "loadFailed": "加载数据失败"
     }
   },
+  "nav": {
+    "dashboard": "仪表盘",
+    "newAnalysis": "新建分析",
+    "globalResults": "全局结果",
+    "admin": "管理面板",
+    "legacySupport": "遗留支持",
+    "preferences": "偏好设置",
+    "lightMode": "浅色模式",
+    "darkMode": "深色模式"
+  },
   "source": {
     "github": "GitHub DB",
     "local_db": "本地 DB",

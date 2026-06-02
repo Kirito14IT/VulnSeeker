@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Col, Popconfirm, Row, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Col, Popconfirm, Row, Space, Table, Tag, Typography, message } from 'antd';
 import { DeleteOutlined, EyeOutlined, PlayCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -10,14 +10,13 @@ import { useAuthStore } from '../stores/authStore';
 import type { Task } from '../types';
 import { getTaskPresentation } from '../utils/taskPresentation';
 
-
 const { Title, Paragraph, Text } = Typography;
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { logout } = useAuthStore();
   const { t } = useTranslation();
 
   const loadTasks = async () => {
@@ -113,86 +112,71 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        style={{
-          marginBottom: 16,
-          borderRadius: 30,
-          border: '1px solid #dbe7f4',
-          background:
-            'radial-gradient(circle at top left, rgba(255,255,255,0.98), rgba(232,244,255,0.96) 42%, rgba(248,250,252,0.98) 100%)',
-          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+    <>
+      {/* Hero */}
+      <div className="hero-card" style={{ padding: '24px 28px', marginBottom: 20 }}>
         <Row justify="space-between" gutter={[16, 16]} align="middle">
           <Col xs={24} lg={14}>
-            <Title level={2} style={{ marginBottom: 8, fontFamily: 'Georgia, serif' }}>
+            <Title level={2} className="hero-title" style={{ marginBottom: 8 }}>
               {t('dashboard.title')}
             </Title>
-            <Paragraph type="secondary" style={{ maxWidth: 720, marginBottom: 16 }}>
+            <Paragraph className="hero-subtitle" style={{ marginBottom: 0 }}>
               {t('dashboard.description')}
             </Paragraph>
           </Col>
           <Col>
             <Space wrap>
               <Text type="secondary">
-                {t('dashboard.signedInAs', { username: user?.username })}
+                {t('dashboard.signedInAs', { username: '' })} {/* username shown in sidebar */}
               </Text>
               <Button onClick={logout}>{t('common.logout')}</Button>
             </Space>
           </Col>
         </Row>
-      </Card>
+      </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col xs={24} md={8}>
-          <Card
-            hoverable
-            onClick={() => navigate('/tasks/new')}
-            style={{ borderRadius: 24, minHeight: 150 }}
-          >
+      {/* Quick actions */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Col xs={24} md={12}>
+          <div className="nav-card" onClick={() => navigate('/tasks/new')} style={{ padding: '20px 24px' }}>
             <Space direction="vertical" size={8}>
-              <Tag color="blue">{t('dashboard.runAnalysis')}</Tag>
-              <Title level={4} style={{ margin: 0 }}>{t('dashboard.cardCreateTask')}</Title>
+              <Tag color="blue" className="nav-card-tag">{t('dashboard.runAnalysis')}</Tag>
+              <Title level={4} style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{t('dashboard.cardCreateTask')}</Title>
               <Text type="secondary">{t('dashboard.cardCreateDesc')}</Text>
             </Space>
-          </Card>
+          </div>
         </Col>
-        <Col xs={24} md={8}>
-          <Card
-            hoverable
-            onClick={() => navigate('/result/results')}
-            style={{ borderRadius: 24, minHeight: 150 }}
-          >
+        <Col xs={24} md={12}>
+          <div className="nav-card" onClick={() => navigate('/result/results')} style={{ padding: '20px 24px' }}>
             <Space direction="vertical" size={8}>
-              <Tag color="geekblue">{t('dashboard.legacyUi')}</Tag>
-              <Title level={4} style={{ margin: 0 }}>{t('dashboard.cardGlobalResults')}</Title>
+              <Tag color="geekblue" className="nav-card-tag">{t('dashboard.legacyUi')}</Tag>
+              <Title level={4} style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{t('dashboard.cardGlobalResults')}</Title>
               <Text type="secondary">{t('dashboard.cardGlobalDesc')}</Text>
             </Space>
-          </Card>
+          </div>
         </Col>
       </Row>
 
-      <Card
-        title={t('dashboard.taskHistory')}
-        extra={
+      {/* Task table */}
+      <div className="content-card" style={{ padding: 0 }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <Title level={5} style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{t('dashboard.taskHistory')}</Title>
           <Space>
             <Button onClick={() => void loadTasks()}>{t('common.refresh')}</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/tasks/new')}>
               {t('dashboard.newTask')}
             </Button>
           </Space>
-        }
-        style={{ borderRadius: 24, border: '1px solid #e5e7eb' }}
-      >
+        </div>
         <Table
           columns={columns}
           dataSource={tasks}
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 12, showSizeChanger: false, hideOnSinglePage: true }}
+          style={{ padding: '0 8px' }}
         />
-      </Card>
-    </div>
+      </div>
+    </>
   );
 }

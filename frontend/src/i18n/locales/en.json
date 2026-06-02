@@ -16,6 +16,16 @@
       "loadFailed": "Failed to load data"
     }
   },
+  "nav": {
+    "dashboard": "Dashboard",
+    "newAnalysis": "New Analysis",
+    "globalResults": "Global Results",
+    "admin": "Admin Panel",
+    "legacySupport": "Legacy Support",
+    "preferences": "Preferences",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode"
+  },
   "source": {
     "github": "GitHub DB",
     "local_db": "Local DB",

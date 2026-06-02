@@ -48,7 +48,6 @@ import MarkdownSummary from '../components/MarkdownSummary';
 import type { IssueDetail, IssueSummary, Task, WsMessage } from '../types';
 import { getTaskPresentation } from '../utils/taskPresentation';
 
-
 const { Title, Text, Paragraph } = Typography;
 
 const STATUS_COLOR: Record<string, string> = {
@@ -98,11 +97,9 @@ type MatrixRecord = {
   total: number;
 };
 
-
 function issueKey(issue: IssueSummary): string {
   return issue.key;
 }
-
 
 function getFunctionName(detail: IssueDetail | undefined): string {
   const currentFunction = detail?.raw_data?.current_function;
@@ -112,7 +109,6 @@ function getFunctionName(detail: IssueDetail | undefined): string {
   return 'N/A';
 }
 
-
 function extractStatusCode(summary: string | null | undefined): string | null {
   if (!summary) {
     return null;
@@ -120,7 +116,6 @@ function extractStatusCode(summary: string | null | undefined): string | null {
   const match = summary.match(/\b(1337|1007|7331|3713)\b/);
   return match ? match[1] : null;
 }
-
 
 function riskScore(issue: IssueSummary): number {
   if (issue.manual_decision === 'True Positive') return 96;
@@ -132,11 +127,9 @@ function riskScore(issue: IssueSummary): number {
   return 28;
 }
 
-
 function pct(value: number, total: number): number {
   return total === 0 ? 0 : Math.round((value / total) * 100);
 }
-
 
 function countBy<T extends string>(items: T[]): Record<T, number> {
   return items.reduce((acc, item) => {
@@ -144,7 +137,6 @@ function countBy<T extends string>(items: T[]): Record<T, number> {
     return acc;
   }, {} as Record<T, number>);
 }
-
 
 function buildTimeline(logs: WsMessage[]) {
   let events = 0;
@@ -169,6 +161,7 @@ function buildTimeline(logs: WsMessage[]) {
   });
 }
 
+/* ── Chart components ──────────────────────────────────────────────────────── */
 
 function StatusPieChart({ data }: { data: ChartDatum[] }) {
   return (
@@ -186,12 +179,11 @@ function StatusPieChart({ data }: { data: ChartDatum[] }) {
   );
 }
 
-
 function ManualStackChart({ data }: { data: Array<Record<string, number | string>> }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
       <BarChart data={data} layout="vertical" margin={{ left: 12, right: 18, top: 16, bottom: 16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#dbeafe" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
         <XAxis type="number" allowDecimals={false} />
         <YAxis type="category" dataKey="name" width={98} />
         <Tooltip />
@@ -205,29 +197,27 @@ function ManualStackChart({ data }: { data: Array<Record<string, number | string
   );
 }
 
-
 function FileRiskChart({ data }: { data: Array<{ file: string; risk: number; count: number }> }) {
   const { t } = useTranslation();
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24, top: 12, bottom: 12 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#dbeafe" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
         <XAxis type="number" allowDecimals={false} />
         <YAxis type="category" dataKey="file" width={160} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(value, name) => [value, name === 'risk' ? t('visualization.riskScoreTooltip') : name]} />
-        <Bar dataKey="risk" fill="#0f766e" radius={[0, 8, 8, 0]} />
+        <Bar dataKey="risk" fill="var(--accent)" radius={[0, 8, 8, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
 }
-
 
 function LogTimelineChart({ data }: { data: ReturnType<typeof buildTimeline> }) {
   const { t } = useTranslation();
   return (
     <ResponsiveContainer width="100%" height={260}>
       <LineChart data={data} margin={{ left: 8, right: 24, top: 12, bottom: 12 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#dbeafe" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
         <XAxis dataKey="index" tick={{ fontSize: 11 }} />
         <YAxis allowDecimals={false} />
         <Tooltip labelFormatter={(index) => t('visualization.eventFormat', { index })} />
@@ -240,6 +230,7 @@ function LogTimelineChart({ data }: { data: ReturnType<typeof buildTimeline> }) 
   );
 }
 
+/* ── Main page ─────────────────────────────────────────────────────────────── */
 
 export default function TaskVisualizationPage() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -428,7 +419,7 @@ export default function TaskVisualizationPage() {
       dataIndex: 'riskScore',
       width: 115,
       sorter: (a, b) => a.riskScore - b.riskScore,
-      render: (value: number) => <Progress percent={value} size="small" showInfo strokeColor="#0f766e" />,
+      render: (value: number) => <Progress percent={value} size="small" showInfo strokeColor="var(--accent)" />,
     },
   ];
 
@@ -483,7 +474,8 @@ export default function TaskVisualizationPage() {
 
   return (
     <div className="visualization-page">
-      <Card className="visualization-hero">
+      {/* Hero */}
+      <div className="viz-hero" style={{ padding: '24px 28px' }}>
         <Row justify="space-between" align="middle" gutter={[16, 16]}>
           <Col xs={24} lg={14}>
             <Space direction="vertical" size={10}>
@@ -493,8 +485,10 @@ export default function TaskVisualizationPage() {
                 </Button>
                 {taskPresentation && <Tag color={taskPresentation.color}>{t(`status.${taskPresentation.statusLabelKey}`)}</Tag>}
               </Space>
-              <Title level={2} className="visualization-title">{t('visualization.title', { id: task.id })}</Title>
-              <Paragraph className="visualization-subtitle">{sourceText}</Paragraph>
+              <Title level={2} className="viz-hero-title" style={{ margin: 0 }}>
+                {t('visualization.title', { id: task.id })}
+              </Title>
+              <Paragraph className="viz-hero-subtitle">{sourceText}</Paragraph>
             </Space>
           </Col>
           <Col>
@@ -514,84 +508,107 @@ export default function TaskVisualizationPage() {
             </Space>
           </Col>
         </Row>
-      </Card>
+      </div>
 
+      {/* No data states */}
       {!task.result_path ? (
-        <Card style={{ borderRadius: 24 }}>
+        <div className="content-card" style={{ padding: 32 }}>
           <Empty description={t('visualization.noResultSnapshot')} />
-        </Card>
+        </div>
       ) : total === 0 ? (
         <Alert type="warning" showIcon message={t('visualization.noIssues')} />
       ) : (
         <>
-          <Row gutter={[16, 16]} className="visualization-kpi-row">
+          {/* KPI row */}
+          <Row gutter={[16, 16]} className="viz-kpi-row stagger-children">
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card"><Statistic title={t('visualization.totalIssues')} value={total} /></Card>
+              <div className="kpi-card" style={{ padding: '18px 20px' }}><Statistic title={t('visualization.totalIssues')} value={total} /></div>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card kpi-green"><Statistic title={t('visualization.truePositive')} value={statusCounts.true ?? 0} /></Card>
+              <div className="kpi-card kpi-green" style={{ padding: '18px 20px' }}><Statistic title={t('visualization.truePositive')} value={statusCounts.true ?? 0} /></div>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card kpi-red"><Statistic title={t('visualization.falsePositive')} value={statusCounts.false ?? 0} /></Card>
+              <div className="kpi-card kpi-red" style={{ padding: '18px 20px' }}><Statistic title={t('visualization.falsePositive')} value={statusCounts.false ?? 0} /></div>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card kpi-amber"><Statistic title={t('visualization.needsMoreData')} value={statusCounts.more ?? 0} /></Card>
+              <div className="kpi-card kpi-amber" style={{ padding: '18px 20px' }}><Statistic title={t('visualization.needsMoreData')} value={statusCounts.more ?? 0} /></div>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card"><Statistic title={t('visualization.manualCoverage')} value={manualCoverage} suffix="%" /></Card>
+              <div className="kpi-card kpi-info" style={{ padding: '18px 20px' }}><Statistic title={t('visualization.manualCoverage')} value={manualCoverage} suffix="%" /></div>
             </Col>
             <Col xs={24} md={8} xl={4}>
-              <Card className="kpi-card"><Statistic title={t('visualization.finalizedRate')} value={finalizedRate} suffix="%" /></Card>
+              <div className="kpi-card" style={{ padding: '18px 20px' }}><Statistic title={t('visualization.finalizedRate')} value={finalizedRate} suffix="%" /></div>
             </Col>
           </Row>
 
+          {/* Charts row 1 */}
           <Row gutter={[16, 16]}>
             <Col xs={24} xl={8}>
-              <Card className="visual-panel" title={t('visualization.llmDistribution')}>
+              <div className="viz-panel" style={{ padding: '16px 20px' }}>
+                <Title level={5} style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, marginBottom: 12 }}>
+                  {t('visualization.llmDistribution')}
+                </Title>
                 <StatusPieChart data={statusPieData} />
-              </Card>
+              </div>
             </Col>
             <Col xs={24} xl={8}>
-              <Card className="visual-panel" title={t('visualization.manualReviewStack')}>
+              <div className="viz-panel" style={{ padding: '16px 20px' }}>
+                <Title level={5} style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, marginBottom: 12 }}>
+                  {t('visualization.manualReviewStack')}
+                </Title>
                 <ManualStackChart data={manualStackData} />
-              </Card>
+              </div>
             </Col>
             <Col xs={24} xl={8}>
-              <Card className="visual-panel" title={t('visualization.reviewMaturity')}>
+              <div className="viz-panel" style={{ padding: '16px 20px' }}>
+                <Title level={5} style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, marginBottom: 12 }}>
+                  {t('visualization.reviewMaturity')}
+                </Title>
                 <Space direction="vertical" size={16} style={{ width: '100%' }}>
                   <div>
                     <Text strong>{t('visualization.manualReviewCoverage')}</Text>
-                    <Progress percent={manualCoverage} strokeColor="#0f766e" />
+                    <Progress percent={manualCoverage} strokeColor="var(--accent)" />
                   </div>
                   <div>
                     <Text strong>{t('visualization.finalizedLlmAnalysis')}</Text>
-                    <Progress percent={finalizedRate} strokeColor="#2563eb" />
+                    <Progress percent={finalizedRate} strokeColor="var(--brand-indigo)" />
                   </div>
                   <div className="maturity-note">
                     <FileSearchOutlined />
                     <Text>{t('visualization.maturityNote')}</Text>
                   </div>
                 </Space>
-              </Card>
+              </div>
             </Col>
           </Row>
 
+          {/* Charts row 2 */}
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col xs={24} xl={12}>
-              <Card className="visual-panel" title={t('visualization.topRiskFiles')}>
+              <div className="viz-panel" style={{ padding: '16px 20px' }}>
+                <Title level={5} style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, marginBottom: 12 }}>
+                  {t('visualization.topRiskFiles')}
+                </Title>
                 <FileRiskChart data={topFiles} />
-              </Card>
+              </div>
             </Col>
             <Col xs={24} xl={12}>
-              <Card className="visual-panel" title={t('visualization.analysisLogTimeline')}>
+              <div className="viz-panel" style={{ padding: '16px 20px' }}>
+                <Title level={5} style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, marginBottom: 12 }}>
+                  {t('visualization.analysisLogTimeline')}
+                </Title>
                 <LogTimelineChart data={timelineData} />
-              </Card>
+              </div>
             </Col>
           </Row>
 
+          {/* Matrix + Risk table */}
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col xs={24} xl={10}>
-              <Card className="visual-panel" title={t('visualization.issueTypeMatrix')}>
+              <div className="viz-panel" style={{ padding: '16px 20px' }}>
+                <Title level={5} style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, marginBottom: 12 }}>
+                  {t('visualization.issueTypeMatrix')}
+                </Title>
                 <Table
                   size="small"
                   columns={matrixColumns}
@@ -599,10 +616,13 @@ export default function TaskVisualizationPage() {
                   rowKey="issueType"
                   pagination={false}
                 />
-              </Card>
+              </div>
             </Col>
             <Col xs={24} xl={14}>
-              <Card className="visual-panel" title={t('visualization.riskRankedTable')}>
+              <div className="viz-panel" style={{ padding: '16px 20px' }}>
+                <Title level={5} style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, marginBottom: 12 }}>
+                  {t('visualization.riskRankedTable')}
+                </Title>
                 <Table
                   className="issue-explorer-table"
                   size="small"
@@ -612,11 +632,15 @@ export default function TaskVisualizationPage() {
                   pagination={{ pageSize: 8, showSizeChanger: false }}
                   scroll={{ x: 980 }}
                 />
-              </Card>
+              </div>
             </Col>
           </Row>
 
-          <Card className="visual-panel issue-narrative-panel" title={t('visualization.issueNarrativeEvidence')} style={{ marginTop: 16 }}>
+          {/* Issue narrative */}
+          <div className="viz-panel issue-narrative-panel" style={{ padding: '16px 20px', marginTop: 16 }}>
+            <Title level={5} style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, marginBottom: 16 }}>
+              {t('visualization.issueNarrativeEvidence')}
+            </Title>
             <Space direction="vertical" size={18} style={{ width: '100%' }}>
               {records.map((record) => (
                 <div className="issue-narrative-card" key={`${record.issue_type}-${record.id}`}>
@@ -632,10 +656,11 @@ export default function TaskVisualizationPage() {
                 </div>
               ))}
             </Space>
-          </Card>
+          </div>
         </>
       )}
 
+      {/* Hidden PDF export stage */}
       <div className="pdf-report-stage" aria-hidden="true">
         <div className="pdf-report" ref={reportRef}>
           <div className="pdf-report-header">

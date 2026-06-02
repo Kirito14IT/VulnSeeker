@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, Card, Col, Empty, Row, Space, Spin, Tag, Typography, message } from 'antd';
+import { Alert, Button, Col, Empty, Row, Space, Spin, Tag, Typography, message } from 'antd';
 import {
   ArrowLeftOutlined,
   BarChartOutlined,
@@ -16,7 +16,6 @@ import { useAuthStore } from '../stores/authStore';
 import type { IssueDetail, IssueSummary, Task, WsMessage } from '../types';
 import { getTaskPresentation } from '../utils/taskPresentation';
 
-
 const { Title, Text } = Typography;
 
 const TASK_PANELS_HEIGHT = 812;
@@ -24,7 +23,6 @@ const TASK_PANELS_HEIGHT = 812;
 function canLoadIssueResults(task: Task | null | undefined): boolean {
   return Boolean(task?.result_path);
 }
-
 
 export default function TaskResultPage() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -249,14 +247,14 @@ export default function TaskResultPage() {
     return (
       <div style={{ minHeight: '50vh', display: 'grid', placeItems: 'center' }}>
         {loadError ? (
-          <Card style={{ borderRadius: 24, maxWidth: 480, textAlign: 'center' }}>
+          <div className="content-card" style={{ maxWidth: 480, textAlign: 'center', padding: 32 }}>
             <Space direction="vertical" size={16}>
               <Text type="danger" style={{ fontSize: 16 }}>{loadError}</Text>
               <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backPath)}>
                 {t('taskResult.back')}
               </Button>
             </Space>
-          </Card>
+          </div>
         ) : (
           <Spin size="large" />
         )}
@@ -271,17 +269,9 @@ export default function TaskResultPage() {
   const taskPresentation = getTaskPresentation(task);
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card
-        style={{
-          marginBottom: 16,
-          borderRadius: 28,
-          border: '1px solid #dbe7f4',
-          background:
-            'radial-gradient(circle at top left, rgba(255,255,255,0.98), rgba(238,246,255,0.95) 48%, rgba(248,250,252,0.98) 100%)',
-          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+    <>
+      {/* Hero */}
+      <div className="hero-card" style={{ padding: '20px 28px', marginBottom: 20 }}>
         <Row justify="space-between" gutter={[16, 16]} align="middle">
           <Col>
             <Space direction="vertical" size={6}>
@@ -293,7 +283,7 @@ export default function TaskResultPage() {
                   {t(`status.${taskPresentation.statusLabelKey}`)}
                 </Tag>
               </Space>
-              <Title level={3} style={{ margin: 0, fontFamily: 'Georgia, serif' }}>
+              <Title level={3} className="hero-title" style={{ margin: 0 }}>
                 {t('taskResult.taskLabel', { id: task.id })}
               </Title>
               <Text type="secondary">{sourceText}</Text>
@@ -308,8 +298,8 @@ export default function TaskResultPage() {
                   onClick={async () => {
                     try {
                       await tasksApi.start(tid);
-                  await loadTask();
-                  await loadLogs();
+                      await loadTask();
+                      await loadLogs();
                       setIssues([]);
                       setSelectedIssue(null);
                       setIssueDetail(null);
@@ -344,86 +334,84 @@ export default function TaskResultPage() {
             </Space>
           </Col>
         </Row>
-      </Card>
+      </div>
 
+      {/* Error message */}
       {task.error_message && (
-        <Card
+        <div
           style={{
-            marginBottom: 16,
-            borderRadius: 20,
-            borderColor: taskPresentation.isPartialLlmFailure ? '#facc15' : '#fecaca',
-            background: taskPresentation.isPartialLlmFailure ? '#fffbea' : '#fff5f5',
+            marginBottom: 20,
+            borderRadius: 'var(--radius-md)',
+            border: `1px solid ${taskPresentation.isPartialLlmFailure ? '#facc15' : 'var(--error)'}`,
+            background: taskPresentation.isPartialLlmFailure ? 'var(--warning-soft)' : 'var(--error-soft)',
+            padding: '16px 20px',
           }}
         >
           {taskPresentation.isPartialLlmFailure ? (
             <Space direction="vertical" size={8}>
-              <Text strong style={{ color: '#a16207' }}>
+              <Text strong style={{ color: 'var(--warning)' }}>
                 {t('taskResult.partialWarning', { rawCount: taskPresentation.rawCount })}
               </Text>
-              <Text type="secondary">
-                {t('taskResult.partialHint')}
-              </Text>
-              <Text style={{ color: '#92400e' }}>{task.error_message}</Text>
+              <Text type="secondary">{t('taskResult.partialHint')}</Text>
+              <Text style={{ color: 'var(--text-secondary)' }}>{task.error_message}</Text>
             </Space>
           ) : (
             <Text type="danger">{task.error_message}</Text>
           )}
-        </Card>
+        </div>
       )}
 
+      {/* Log + Issue panels */}
       <Row gutter={16} align="top">
+        {/* Execution log */}
         <Col xs={24} xl={7}>
-          <Card
-            title={t('taskResult.executionLog')}
-            size="small"
-            extra={<Text type="secondary">{t('taskResult.lines', { count: logs.length })}</Text>}
-            style={{
-              borderRadius: 24,
-              height: TASK_PANELS_HEIGHT,
-              border: '1px solid #dbe7f4',
-              background: 'linear-gradient(180deg, #0f172a 0%, #111827 100%)',
-              boxShadow: '0 18px 50px rgba(15, 23, 42, 0.18)',
-            }}
-            headStyle={{ color: '#f8fafc', borderBottomColor: 'rgba(255,255,255,0.08)' }}
-            bodyStyle={{ padding: 0, height: TASK_PANELS_HEIGHT - 56, overflow: 'hidden' }}
-          >
-            {logs.length === 0 ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={<span style={{ color: '#94a3b8' }}>{t('taskResult.noLogs')}</span>}
-                style={{ marginTop: 120 }}
-              />
-            ) : (
-              <div
-                ref={logContainerRef}
-                onScroll={handleLogScroll}
-                style={{ height: TASK_PANELS_HEIGHT - 56, overflow: 'auto', padding: 16 }}
-              >
-                {logs.map((log, index) => (
-                  <div
-                    key={`${log.timestamp}-${index}`}
-                    style={{
-                      color: log.type === 'error'
-                        ? '#fca5a5'
-                        : log.type === 'done'
-                          ? '#86efac'
-                          : log.type === 'status'
-                            ? '#7dd3fc'
-                            : '#e2e8f0',
-                      fontFamily: 'JetBrains Mono, Fira Code, monospace',
-                      fontSize: 12,
-                      marginBottom: 10,
-                      whiteSpace: 'pre-wrap',
-                    }}
-                  >
-                    [{new Date(log.timestamp).toLocaleTimeString()}] {log.content}
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
+          <div className="log-panel" style={{ height: TASK_PANELS_HEIGHT }}>
+            <div style={{
+              padding: '14px 20px',
+              borderBottom: '1px solid var(--log-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <Text strong style={{ color: 'var(--log-text)', fontFamily: 'var(--font-heading)' }}>
+                {t('taskResult.executionLog')}
+              </Text>
+              <Text style={{ color: 'var(--log-text-dim)', fontSize: 12 }}>
+                {t('taskResult.lines', { count: logs.length })}
+              </Text>
+            </div>
+            <div style={{ height: TASK_PANELS_HEIGHT - 57, overflow: 'hidden' }}>
+              {logs.length === 0 ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={<span style={{ color: 'var(--text-tertiary)' }}>{t('taskResult.noLogs')}</span>}
+                  style={{ marginTop: 120 }}
+                />
+              ) : (
+                <div
+                  ref={logContainerRef}
+                  onScroll={handleLogScroll}
+                  style={{ height: TASK_PANELS_HEIGHT - 57, overflow: 'auto', padding: 16 }}
+                >
+                  {logs.map((log, index) => {
+                    const className = `log-line log-line-${log.type === 'error' ? 'error' : log.type === 'done' ? 'done' : log.type === 'status' ? 'status' : 'info'}`;
+                    return (
+                      <div
+                        key={`${log.timestamp}-${index}`}
+                        className={className}
+                        style={{ marginBottom: 8 }}
+                      >
+                        [{new Date(log.timestamp).toLocaleTimeString()}] {log.content}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </Col>
 
+        {/* Issue explorer */}
         <Col xs={24} xl={17}>
           {isCompleted ? (
             <IssueExplorer
@@ -437,7 +425,7 @@ export default function TaskResultPage() {
             />
           ) : taskPresentation.isPartialLlmFailure ? (
             <Space direction="vertical" size={16} style={{ width: '100%' }}>
-              <Card style={{ borderRadius: 24 }}>
+              <div className="content-card" style={{ padding: 20 }}>
                 <Alert
                   type="warning"
                   showIcon
@@ -447,7 +435,7 @@ export default function TaskResultPage() {
                     finalCount: taskPresentation.finalCount,
                   })}
                 />
-              </Card>
+              </div>
               <IssueExplorer
                 issues={issues}
                 loading={loading}
@@ -459,20 +447,20 @@ export default function TaskResultPage() {
               />
             </Space>
           ) : isPending ? (
-            <Card style={{ borderRadius: 24 }}>
+            <div className="content-card" style={{ padding: 32 }}>
               <Empty description={t('taskResult.notStarted')} />
-            </Card>
+            </div>
           ) : isRunning ? (
-            <Card style={{ borderRadius: 24 }}>
+            <div className="content-card" style={{ padding: 32 }}>
               <Empty description={t('taskResult.running')} />
-            </Card>
+            </div>
           ) : (
-            <Card style={{ borderRadius: 24 }}>
+            <div className="content-card" style={{ padding: 32 }}>
               <Empty description={t('taskResult.failedBeforeResults')} />
-            </Card>
+            </div>
           )}
         </Col>
       </Row>
-    </div>
+    </>
   );
 }
