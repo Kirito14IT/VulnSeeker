@@ -1,5 +1,13 @@
 /**
  * Global auth store using Zustand.
+ *
+ * Hydration is done synchronously at module load so the very first
+ * render of route guards (e.g. `ProtectedRoute`) sees the correct
+ * auth state. Without this, hard-loading a deep link such as
+ * `/tasks/123` would race: the first render believes the user is
+ * signed out, redirects to `/login`, and only THEN does the hydrate
+ * effect run — at which point the public-route guard kicks the user
+ * over to `/` (or `/admin`), losing the original URL.
  */
 
 import { create } from 'zustand';
@@ -11,13 +19,32 @@ interface AuthStore {
   isAuthenticated: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
-  hydrate: () => void;
 }
 
+function readPersistedAuth(): { token: string | null; user: User | null } {
+  if (typeof window === 'undefined') {
+    return { token: null, user: null };
+  }
+  const token = window.localStorage.getItem('vulnseeker_token');
+  const userStr = window.localStorage.getItem('vulnseeker_user');
+  if (!token || !userStr) {
+    return { token: null, user: null };
+  }
+  try {
+    return { token, user: JSON.parse(userStr) as User };
+  } catch {
+    window.localStorage.removeItem('vulnseeker_token');
+    window.localStorage.removeItem('vulnseeker_user');
+    return { token: null, user: null };
+  }
+}
+
+const persisted = readPersistedAuth();
+
 export const useAuthStore = create<AuthStore>((set) => ({
-  user: null,
-  token: null,
-  isAuthenticated: false,
+  user: persisted.user,
+  token: persisted.token,
+  isAuthenticated: Boolean(persisted.token && persisted.user),
 
   login: (token: string, user: User) => {
     localStorage.setItem('vulnseeker_token', token);
@@ -29,19 +56,5 @@ export const useAuthStore = create<AuthStore>((set) => ({
     localStorage.removeItem('vulnseeker_token');
     localStorage.removeItem('vulnseeker_user');
     set({ user: null, token: null, isAuthenticated: false });
-  },
-
-  hydrate: () => {
-    const token = localStorage.getItem('vulnseeker_token');
-    const userStr = localStorage.getItem('vulnseeker_user');
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr) as User;
-        set({ token, user, isAuthenticated: true });
-      } catch {
-        localStorage.removeItem('vulnseeker_token');
-        localStorage.removeItem('vulnseeker_user');
-      }
-    }
   },
 }));

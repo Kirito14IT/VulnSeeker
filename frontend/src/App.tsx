@@ -40,17 +40,12 @@ function PublicRoute() {
 /* ── Inner app (has access to theme context) ───────────────────────────────── */
 
 function ThemedApp() {
-  const hydrate = useAuthStore((s) => s.hydrate);
   const { i18n } = useTranslation();
   const { isDark } = useTheme();
 
   const [antdLocale, setAntdLocale] = useState(
     i18n.language.startsWith('zh') ? zhCN : enUS,
   );
-
-  useEffect(() => {
-    hydrate();
-  }, [hydrate]);
 
   useEffect(() => {
     const handler = (lng: string) => {

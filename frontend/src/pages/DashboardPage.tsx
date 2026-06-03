@@ -98,11 +98,9 @@ export default function DashboardPage() {
               {record.status === 'failed' ? t('dashboard.retry') : t('dashboard.run')}
             </Button>
           ) : null}
-          {record.status !== 'pending' ? (
-            <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/tasks/${record.id}`)}>
-              {t('dashboard.open')}
-            </Button>
-          ) : null}
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/tasks/${record.id}`)}>
+            {t('dashboard.open')}
+          </Button>
           <Popconfirm title={t('dashboard.deleteConfirm')} onConfirm={() => handleDelete(record.id)}>
             <Button danger size="small" icon={<DeleteOutlined />} />
           </Popconfirm>
