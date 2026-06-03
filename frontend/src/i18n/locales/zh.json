@@ -378,7 +378,11 @@
     "issueType": "问题类型",
     "file": "文件",
     "function": "函数",
-    "nA": "N/A"
+    "nA": "N/A",
+    "translateEn": "EN",
+    "translateZh": "中文",
+    "translating": "翻译中...",
+    "translateFailed": "翻译失败，已显示原文"
   },
   "markdownSummary": {
     "noSummary": "无可用的摘要"

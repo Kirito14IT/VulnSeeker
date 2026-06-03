@@ -378,7 +378,11 @@
     "issueType": "Issue Type",
     "file": "File",
     "function": "Function",
-    "nA": "N/A"
+    "nA": "N/A",
+    "translateEn": "EN",
+    "translateZh": "中文",
+    "translating": "Translating...",
+    "translateFailed": "Translation failed, showing original"
   },
   "markdownSummary": {
     "noSummary": "No summary available"
