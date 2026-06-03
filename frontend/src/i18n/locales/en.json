@@ -131,6 +131,8 @@
     "githubRepo": "GitHub Repository",
     "repoPlaceholder": "redis/redis",
     "repoValidateMsg": "Enter org/repo, for example redis/redis",
+    "repoTooLong": "Repository name is too long (max 512 characters)",
+    "repoInvalidFormat": "Invalid format. Use org/repo or a full GitHub URL",
     "localDbPath": "Local Database Path",
     "localSrcPath": "Local Source Path",
     "localValidateMsg": "Enter a server-local filesystem path",

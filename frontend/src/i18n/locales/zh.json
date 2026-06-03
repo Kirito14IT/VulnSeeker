@@ -131,6 +131,8 @@
     "githubRepo": "GitHub 仓库",
     "repoPlaceholder": "redis/redis",
     "repoValidateMsg": "请输入 org/repo 格式，例如 redis/redis",
+    "repoTooLong": "仓库名称过长（最多 512 个字符）",
+    "repoInvalidFormat": "仓库格式无效，请使用 org/repo 或完整的 GitHub URL",
     "localDbPath": "本地数据库路径",
     "localSrcPath": "本地源码路径",
     "localValidateMsg": "请输入服务器本地文件系统路径",

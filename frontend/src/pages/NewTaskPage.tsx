@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { tasksApi } from '../api';
 import type { TaskCreate, TaskSource } from '../types';
+import { parseGithubRepo, MAX_REPO_URL_LENGTH } from '../utils/validation';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -103,7 +104,21 @@ export default function NewTaskPage() {
               <Form.Item
                 name="repo_url"
                 label={t('newTask.githubRepo')}
-                rules={[{ required: true, message: t('newTask.repoValidateMsg') }]}
+                rules={[
+                  { required: true, message: t('newTask.repoValidateMsg') },
+                  {
+                    validator: async (_: any, value: string) => {
+                      if (!value) return;
+                      const trimmed = value.trim();
+                      if (trimmed.length > MAX_REPO_URL_LENGTH) {
+                        throw new Error(t('newTask.repoTooLong'));
+                      }
+                      if (!parseGithubRepo(trimmed)) {
+                        throw new Error(t('newTask.repoInvalidFormat'));
+                      }
+                    },
+                  },
+                ]}
               >
                 <Input size="large" placeholder={t('newTask.repoPlaceholder')} />
               </Form.Item>

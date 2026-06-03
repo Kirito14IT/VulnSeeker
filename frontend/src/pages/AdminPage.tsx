@@ -13,6 +13,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { adminApi } from '../api';
 import { useAuthStore } from '../stores/authStore';
 import type { User, TaskWithUser, TaskSource } from '../types';
+import { parseGithubRepo, MAX_REPO_URL_LENGTH } from '../utils/validation';
 import { getTaskPresentation } from '../utils/taskPresentation';
 
 const { Title, Text } = Typography;
@@ -338,7 +339,26 @@ function TasksTab() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="repo_url" label={t('admin.form.repoUrl')} rules={[{ required: true }]}>
+          <Form.Item
+            name="repo_url"
+            label={t('admin.form.repoUrl')}
+            dependencies={['source_type']}
+            rules={[
+              { required: true },
+              ({ getFieldValue }) => ({
+                validator: async (_: any, value: string) => {
+                  if (getFieldValue('source_type') !== 'github' || !value) return;
+                  const trimmed = value.trim();
+                  if (trimmed.length > MAX_REPO_URL_LENGTH) {
+                    throw new Error(t('newTask.repoTooLong'));
+                  }
+                  if (!parseGithubRepo(trimmed)) {
+                    throw new Error(t('newTask.repoInvalidFormat'));
+                  }
+                },
+              }),
+            ]}
+          >
             <Input placeholder={t('admin.tasks.repoPlaceholder')} />
           </Form.Item>
           <Form.Item name="language" label={t('admin.form.language')}>
@@ -374,7 +394,26 @@ function TasksTab() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="repo_url" label={t('admin.form.repoUrl')} rules={[{ required: true }]}>
+          <Form.Item
+            name="repo_url"
+            label={t('admin.form.repoUrl')}
+            dependencies={['source_type']}
+            rules={[
+              { required: true },
+              ({ getFieldValue }) => ({
+                validator: async (_: any, value: string) => {
+                  if (getFieldValue('source_type') !== 'github' || !value) return;
+                  const trimmed = value.trim();
+                  if (trimmed.length > MAX_REPO_URL_LENGTH) {
+                    throw new Error(t('newTask.repoTooLong'));
+                  }
+                  if (!parseGithubRepo(trimmed)) {
+                    throw new Error(t('newTask.repoInvalidFormat'));
+                  }
+                },
+              }),
+            ]}
+          >
             <Input />
           </Form.Item>
           <Form.Item name="language" label={t('admin.form.language')}>
