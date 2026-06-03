@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" role="img" aria-label="VulnSeeker">
+  <defs>
+    <linearGradient id="vs-scan" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <!-- Shield -->
+  <rect x="8" y="8" width="48" height="48" rx="4" />
+  <!-- Diagonal scan line -->
+  <line x1="14" y1="14" x2="50" y2="50" stroke="url(#vs-scan)" stroke-width="1.5" />
+  <!-- VS wordmark -->
+  <text x="32" y="38" text-anchor="middle"
+        font-family="system-ui, -apple-system, Segoe UI, sans-serif"
+        font-size="20" font-weight="800" fill="currentColor" stroke="none"
+        letter-spacing="-0.5">VS</text>
+  <!-- Magnifier handle (bottom-right) -->
+  <g stroke-width="1.5" stroke-linecap="round">
+    <circle cx="46" cy="46" r="3" />
+    <line x1="48.2" y1="48.2" x2="52" y2="52" />
+  </g>
+</svg>
