@@ -384,9 +384,12 @@ export default function TaskResultPage() {
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <Text strong style={{ color: 'var(--log-text)', fontFamily: 'var(--font-heading)' }}>
-                {t('taskResult.executionLog')}
-              </Text>
+              <Space>
+                {task?.status === 'running' ? <span className="status-dot running" aria-label="running" /> : null}
+                <Text strong style={{ color: 'var(--log-text)', fontFamily: 'var(--font-heading)' }}>
+                  {t('taskResult.executionLog')}
+                </Text>
+              </Space>
               <Text style={{ color: 'var(--log-text-dim)', fontSize: 12 }}>
                 {t('taskResult.lines', { count: logs.length })}
               </Text>
