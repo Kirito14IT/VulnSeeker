@@ -155,8 +155,10 @@ export const adminApi = {
 
 export const translateApi = {
   translate: (text: string, target: string = 'zh-CN') =>
-    api.post<{ translated: string; provider: 'mymemory' }>('/api/translate', {
-      text,
-      target,
-    }),
+    api
+      .post<{ translated: string; provider: 'mymemory' }>('/api/translate', {
+        text,
+        target,
+      })
+      .then((r) => r.data),
 };
