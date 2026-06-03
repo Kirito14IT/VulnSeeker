@@ -27,7 +27,7 @@
     "darkMode": "深色模式"
   },
   "source": {
-    "github": "GitHub DB",
+    "github": "GitHub Repo",
     "local_db": "本地 DB",
     "local_src": "本地源码",
     "github_full": "GitHub 预构建数据库",

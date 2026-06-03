@@ -27,7 +27,7 @@
     "darkMode": "Dark Mode"
   },
   "source": {
-    "github": "GitHub DB",
+    "github": "GitHub Repo",
     "local_db": "Local DB",
     "local_src": "Local Source",
     "github_full": "GitHub prebuilt database",
