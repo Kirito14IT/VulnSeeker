@@ -168,3 +168,16 @@ class RepoStat(BaseModel):
 class ConfigValidationResponse(BaseModel):
     valid: bool
     errors: List[str]
+
+
+# ── Translate ─────────────────────────────────────────────────────────────────
+
+class TranslateRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=20000, description="Text to translate")
+    source: str = Field(default='auto', max_length=8, description="Source language code or 'auto'")
+    target: str = Field(default='zh-CN', max_length=8, description="Target language code")
+
+
+class TranslateResponse(BaseModel):
+    translated: str
+    provider: str = Field(default='mymemory')
