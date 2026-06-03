@@ -188,6 +188,7 @@
     "partialResultDesc": "CodeQL 发现了 {{rawCount}} 个原始问题，但 LLM 阶段仅产生了 {{finalCount}} 个最终结果。下方仍可查看原始匹配项。",
     "notStarted": "此任务尚未启动。请启动分析以生成结果。",
     "running": "分析正在运行。任务完成后结果将显示在此处。",
+    "runningHint": "正在扫描代码、构建查询并生成分析...",
     "failedBeforeResults": "任务在生成结果前已失败。",
     "restarted": "任务已重新启动",
     "started": "任务已启动",

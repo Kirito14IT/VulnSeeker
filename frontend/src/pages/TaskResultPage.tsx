@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, Col, Empty, Row, Space, Spin, Tag, Typography, message } from 'antd';
+import { Alert, Button, Col, Empty, Row, Skeleton, Space, Spin, Tag, Typography, message } from 'antd';
 import {
   ArrowLeftOutlined,
   BarChartOutlined,
@@ -466,7 +466,16 @@ export default function TaskResultPage() {
             </div>
           ) : isRunning ? (
             <div className="content-card" style={{ padding: 32 }}>
-              <Empty description={t('taskResult.running')} />
+              <Space direction="vertical" size="large" style={{ width: '100%', alignItems: 'center' }}>
+                <Space>
+                  <Spin size="large" />
+                  <Text strong style={{ fontSize: 16 }}>{t('taskResult.running')}</Text>
+                </Space>
+                <div style={{ width: '100%', maxWidth: 720 }}>
+                  <Skeleton active paragraph={{ rows: 3 }} title={{ width: '30%' }} />
+                </div>
+                <Text type="secondary">{t('taskResult.runningHint')}</Text>
+              </Space>
             </div>
           ) : (
             <div className="content-card" style={{ padding: 32 }}>

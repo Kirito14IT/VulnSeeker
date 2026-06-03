@@ -188,6 +188,7 @@
     "partialResultDesc": "CodeQL found {{rawCount}} raw issue(s), but the LLM stage produced {{finalCount}} finalized result(s). Raw matches are still available below.",
     "notStarted": "This task has not started yet. Start the analysis to generate results.",
     "running": "Analysis is running. Results will appear here as soon as the task completes.",
+    "runningHint": "Scanning code, building queries and generating analysis...",
     "failedBeforeResults": "Task failed before results were generated.",
     "restarted": "Task restarted",
     "started": "Task started",
