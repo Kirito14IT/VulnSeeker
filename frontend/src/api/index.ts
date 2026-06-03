@@ -150,3 +150,13 @@ export const adminApi = {
   deleteTask: (id: number) =>
     api.delete(`/api/admin/tasks/${id}`),
 };
+
+// ── Translate ─────────────────────────────────────────────────────────────────
+
+export const translateApi = {
+  translate: (text: string, target: string = 'zh-CN') =>
+    api.post<{ translated: string; provider: 'mymemory' }>('/api/translate', {
+      text,
+      target,
+    }),
+};
