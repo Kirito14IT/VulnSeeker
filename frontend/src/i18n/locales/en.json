@@ -382,7 +382,8 @@
     "translateEn": "EN",
     "translateZh": "中文",
     "translating": "Translating...",
-    "translateFailed": "Translation failed, showing original"
+    "translateFailed": "Translation failed, showing original",
+    "translateFailedWithDetail": "Translation failed: {{detail}}"
   },
   "markdownSummary": {
     "noSummary": "No summary available"

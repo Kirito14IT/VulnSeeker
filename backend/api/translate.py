@@ -51,6 +51,9 @@ def _split_into_chunks(text: str) -> List[str]:
 
 async def _call_mymemory(text: str, source: str, target: str) -> str:
     """Call MyMemory once for a single chunk. Returns translated text."""
+    # MyMemory does not accept 'auto' as a source code; fall back to 'en'
+    if source == 'auto':
+        source = 'en'
     params = {"q": text, "langpair": f"{source}|{target}"}
     async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
         resp = await client.get(

@@ -227,11 +227,13 @@ export default function IssueExplorer({
       setTranslating(true);
       setDisplayLang('zh');
       try {
-        const res = await translateApi.translate(issueDetail.summary ?? '', 'zh-CN');
+        const res = await translateApi.translate(issueDetail.summary ?? '', 'zh-CN', 'en');
         setTranslatedText(res.translated);
         setCachedTranslation(issueDetail.id, 'zh-CN', res.translated);
-      } catch {
-        message.error(t('issueExplorer.translateFailed'));
+      } catch (err) {
+        const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+        const friendly = detail ? t('issueExplorer.translateFailedWithDetail', { detail }) : t('issueExplorer.translateFailed');
+        message.error(friendly);
         setTranslatedText(null);
         setDisplayLang('en');
       } finally {

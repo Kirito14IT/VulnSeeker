@@ -382,7 +382,8 @@
     "translateEn": "EN",
     "translateZh": "中文",
     "translating": "翻译中...",
-    "translateFailed": "翻译失败，已显示原文"
+    "translateFailed": "翻译失败，已显示原文",
+    "translateFailedWithDetail": "翻译失败：{{detail}}"
   },
   "markdownSummary": {
     "noSummary": "无可用的摘要"
