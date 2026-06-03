@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
 
-import { legacyApi, systemApi } from '../api';
+import { systemApi } from '../api';
 import type { ConfigValidationResponse, RepoStat } from '../types';
 
 const { Title, Paragraph, Text } = Typography;
@@ -22,7 +22,7 @@ export default function LegacySupportPage() {
     setLoading(true);
     try {
       const [statsResponse, validationResponse] = await Promise.all([
-        legacyApi.stats(),
+        systemApi.stats(),
         systemApi.validate(),
       ]);
       setStats(statsResponse);

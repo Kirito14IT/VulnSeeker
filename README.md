@@ -11,7 +11,6 @@ VulnSeeker 是一个代码安全性审查平台，核心流程是先使用 CodeQ
 - 支持任务级隔离工作区，避免不同分析任务之间的日志和结果互相污染
 - 支持 CodeQL 原始结果与 LLM 复核结果的统一展示
 - 支持人工标注 True Positive、False Positive、Uncertain
-- 保留旧结果浏览能力，便于迁移和对比历史分析结果
 
 ## 技术栈
 
@@ -29,7 +28,6 @@ VulnSeeker 是一个代码安全性审查平台，核心流程是先使用 CodeQ
 - `data/queries/`：CodeQL 查询包
 - `output/web_tasks/task_<id>/`：Web 任务隔离工作区、日志和结果
 - `output/databases/`：CodeQL 数据库缓存
-- `output/results/`：旧版全局结果浏览来源
 
 ## 当前维护约定
 

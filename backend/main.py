@@ -19,7 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from core.config import get_settings
 from core.database import init_db
-from api import auth, admin, legacy_results, results, system, tasks, translate
+from api import auth, admin, results, system, tasks
 from tasks import run_analysis
 
 
@@ -111,9 +111,7 @@ fastapi_app.include_router(auth.router)
 fastapi_app.include_router(admin.router)
 fastapi_app.include_router(tasks.router)
 fastapi_app.include_router(results.router)
-fastapi_app.include_router(legacy_results.router)
 fastapi_app.include_router(system.router)
-fastapi_app.include_router(translate.router)
 
 
 # ── Start task endpoint (triggers background analysis) ────────────────────────

@@ -100,14 +100,13 @@ export const resultsApi = {
     api.patch(`/api/tasks/${taskId}/issues/${issueId}`, { decision } as IssueDecisionUpdate),
 };
 
-export const legacyApi = {
-  stats: () =>
-    api.get<RepoStat[]>('/api/legacy/stats').then((r) => r.data),
-};
-
 export const systemApi = {
   validate: async (): Promise<ConfigValidationResponse> => {
     const response = await api.get('/api/system/validate');
+    return response.data;
+  },
+  stats: async (): Promise<RepoStat[]> => {
+    const response = await api.get('/api/system/stats');
     return response.data;
   },
   fetchQLDeps: async (): Promise<{ status: string }> => {
@@ -149,17 +148,4 @@ export const adminApi = {
 
   deleteTask: (id: number) =>
     api.delete(`/api/admin/tasks/${id}`),
-};
-
-// ── Translate ─────────────────────────────────────────────────────────────────
-
-export const translateApi = {
-  translate: (text: string, target: string = 'zh-CN', source: string = 'en') =>
-    api
-      .post<{ translated: string; provider: 'mymemory' }>('/api/translate', {
-        text,
-        target,
-        source,
-      })
-      .then((r) => r.data),
 };

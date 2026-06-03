@@ -92,25 +92,6 @@ def find_task_issue(results_root: Path, language: str, issue_id: str) -> Optiona
     return None
 
 
-def load_global_issues(results_root: Path, language: str = "cpp") -> list[Issue]:
-    """
-    Load issues from the legacy global results folder using ResultsLoader.
-    """
-    if not results_root.exists():
-        return []
-
-    loader = ResultsLoader(str(results_root))
-    all_issues = []
-    for lang in [l.strip() for l in language.split(",")]:
-        issues, _ = loader.load_all_issues(lang)
-        all_issues.extend(issues)
-
-    saved_decisions = loader.load_manual_decisions()
-    for issue in all_issues:
-        issue.manual_decision = saved_decisions.get(issue.final_path)
-    return all_issues
-
-
 def build_repo_stats(issues: list[Issue]) -> list[RepoStat]:
     from collections import defaultdict
 
@@ -149,6 +130,5 @@ __all__ = [
     "_issue_to_summary",
     "build_repo_stats",
     "find_task_issue",
-    "load_global_issues",
     "load_task_issues",
 ]

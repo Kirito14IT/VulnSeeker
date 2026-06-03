@@ -55,10 +55,6 @@ class Settings(BaseSettings):
         )
 
     @property
-    def RESULTS_ROOT(self) -> Path:
-        return self.VULNSEEKER_ROOT / "output" / "results"
-
-    @property
     def DATABASES_ROOT(self) -> Path:
         return self.VULNSEEKER_ROOT / "output" / "databases"
 
