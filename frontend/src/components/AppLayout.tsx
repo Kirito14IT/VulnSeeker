@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../contexts/ThemeContext';
 import LanguageSwitcher from './LanguageSwitcher';
+import logoSvg from '../assets/logo.svg';
 import type { ReactNode } from 'react';
 
 type NavItem = {
@@ -86,7 +87,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Logo */}
       <div className="app-sidebar-header">
         <a href="/" className="app-sidebar-logo" onClick={(e) => { e.preventDefault(); navigate('/'); }}>
-          <div className="app-sidebar-logo-icon">VS</div>
+          <div className="app-sidebar-logo-icon">
+            <img src={logoSvg} alt="VulnSeeker" />
+          </div>
           <span className="app-sidebar-logo-text">VulnSeeker</span>
         </a>
       </div>
