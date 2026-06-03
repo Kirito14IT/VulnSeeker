@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Card,
@@ -6,10 +6,12 @@ import {
   Divider,
   Empty,
   Input,
+  message,
   Row,
   Col,
   Select,
   Segmented,
+  Skeleton,
   Space,
   Spin,
   Table,
@@ -19,7 +21,9 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { useTranslation } from 'react-i18next';
 
+import { translateApi } from '../api';
 import type { IssueDetail, IssueSummary } from '../types';
+import { getCachedTranslation, setCachedTranslation } from '../utils/translateCache';
 import MarkdownSummary from './MarkdownSummary';
 
 const { Text, Paragraph } = Typography;
@@ -131,6 +135,9 @@ export default function IssueExplorer({
   const [llmFilter, setLlmFilter] = useState<string>('All');
   const [decisionFilter, setDecisionFilter] = useState<string>('All');
   const [summaryMode, setSummaryMode] = useState<'rendered' | 'raw'>('rendered');
+  const [displayLang, setDisplayLang] = useState<'en' | 'zh'>('en');
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [translating, setTranslating] = useState(false);
 
   const filteredIssues = useMemo(() => (
     issues.filter((issue) => {
@@ -200,6 +207,39 @@ export default function IssueExplorer({
       render: (value: string) => <Text code style={{ fontSize: 12, display: 'block' }} title={value}>{value}</Text>,
     },
   ];
+
+  const handleLangChange = useCallback(
+    async (next: 'en' | 'zh') => {
+      if (next === displayLang) return;
+      if (next === 'en') {
+        setTranslatedText(null);
+        setDisplayLang('en');
+        return;
+      }
+      // next === 'zh'
+      if (!issueDetail) return;
+      const cached = getCachedTranslation(issueDetail.id, 'zh-CN');
+      if (cached !== null) {
+        setTranslatedText(cached);
+        setDisplayLang('zh');
+        return;
+      }
+      setTranslating(true);
+      setDisplayLang('zh');
+      try {
+        const res = await translateApi.translate(issueDetail.summary ?? '', 'zh-CN');
+        setTranslatedText(res.translated);
+        setCachedTranslation(issueDetail.id, 'zh-CN', res.translated);
+      } catch {
+        message.error(t('issueExplorer.translateFailed'));
+        setTranslatedText(null);
+        setDisplayLang('en');
+      } finally {
+        setTranslating(false);
+      }
+    },
+    [displayLang, issueDetail, t],
+  );
 
   const highlightLine = extractLocationLine(issueDetail);
   const functionName = issueDetail?.raw_data
@@ -363,18 +403,44 @@ export default function IssueExplorer({
                   <Divider />
                   <Space wrap style={{ width: '100%', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text strong>{selectedIssueFinalized ? t('issueExplorer.llmFinalAnswer') : t('issueExplorer.rawMatchSummary')}</Text>
-                    <Segmented
-                      size="small"
-                      value={summaryMode}
-                      onChange={(value) => setSummaryMode(value as 'rendered' | 'raw')}
-                      options={[
-                        { label: t('issueExplorer.rendered'), value: 'rendered' },
-                        { label: t('issueExplorer.raw'), value: 'raw' },
-                      ]}
-                    />
+                    <Space>
+                      {selectedIssueFinalized && summaryMode === 'rendered' ? (
+                        <Segmented
+                          size="small"
+                          value={displayLang}
+                          onChange={(v) => void handleLangChange(v as 'en' | 'zh')}
+                          options={[
+                            { label: t('issueExplorer.translateEn'), value: 'en' },
+                            { label: t('issueExplorer.translateZh'), value: 'zh' },
+                          ]}
+                          disabled={translating}
+                        />
+                      ) : null}
+                      <Segmented
+                        size="small"
+                        value={summaryMode}
+                        onChange={(value) => setSummaryMode(value as 'rendered' | 'raw')}
+                        options={[
+                          { label: t('issueExplorer.rendered'), value: 'rendered' },
+                          { label: t('issueExplorer.raw'), value: 'raw' },
+                        ]}
+                      />
+                    </Space>
                   </Space>
                   {summaryMode === 'rendered' ? (
-                    <MarkdownSummary content={issueDetail.summary || t('issueExplorer.noSummary')} />
+                    translating ? (
+                      <div style={{ marginTop: 8 }}>
+                        <Skeleton active paragraph={{ rows: 4 }} title={{ width: '40%' }} />
+                      </div>
+                    ) : (
+                      <MarkdownSummary
+                        content={
+                          displayLang === 'zh' && translatedText !== null
+                            ? translatedText
+                            : issueDetail.summary || t('issueExplorer.noSummary')
+                        }
+                      />
+                    )
                   ) : (
                     <Paragraph style={{ marginTop: 8, whiteSpace: 'pre-wrap', fontSize: 13 }}>
                       {issueDetail.summary || t('issueExplorer.noSummary')}
