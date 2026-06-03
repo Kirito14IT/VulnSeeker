@@ -24,9 +24,8 @@ export default function LoginPage() {
       login(resp.access_token, resp.user);
       message.success(t('auth.login.success', { username: resp.user.username }));
       navigate(resp.user.role === 'admin' ? '/admin' : '/');
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string } } };
-      message.error(e.response?.data?.detail ?? t('auth.login.failed'));
+    } catch {
+      message.error(t('auth.login.wrongCredentials'));
     }
   };
 

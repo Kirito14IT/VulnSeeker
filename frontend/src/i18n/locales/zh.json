@@ -83,7 +83,8 @@
       "noAccount": "没有账户？",
       "registerLink": "立即注册",
       "success": "欢迎回来，{{username}}！",
-      "failed": "登录失败"
+      "failed": "错误的账号或密码",
+      "wrongCredentials": "错误的账号或密码"
     },
     "register": {
       "title": "VulnSeeker",
@@ -318,7 +319,8 @@
       "updateFailed": "更新用户失败",
       "deleted": "用户 '{{username}}' 已删除",
       "deleteFailed": "删除用户失败",
-      "loadFailed": "加载用户列表失败"
+      "loadFailed": "加载用户列表失败",
+      "cannotChangeOwnRole": "不能修改自己的角色"
     },
     "tasks": {
       "title": "任务",
