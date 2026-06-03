@@ -41,6 +41,7 @@ export default function TaskResultPage() {
   const [selectedIssue, setSelectedIssue] = useState<IssueSummary | null>(null);
   const [issueDetail, setIssueDetail] = useState<IssueDetail | null>(null);
   const [logs, setLogs] = useState<WsMessage[]>([]);
+  const [liveLineCount, setLiveLineCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -101,6 +102,7 @@ export default function TaskResultPage() {
       const response = await tasksApi.logs(tid);
       if (activeTaskIdRef.current === tid) {
         setLogs(response.lines);
+        setLiveLineCount(0);
       }
     } catch {
       message.error(t('taskResult.logsLoadFailed'));
@@ -192,6 +194,7 @@ export default function TaskResultPage() {
           && last.content === msg.content) {
           return previous;
         }
+        setLiveLineCount((c) => c + 1);
         return [...previous, msg];
       });
     });
@@ -408,7 +411,9 @@ export default function TaskResultPage() {
                   style={{ height: TASK_PANELS_HEIGHT - 57, overflow: 'auto', padding: 16 }}
                 >
                   {logs.map((log, index) => {
-                    const className = `log-line log-line-${log.type === 'error' ? 'error' : log.type === 'done' ? 'done' : log.type === 'status' ? 'status' : 'info'}`;
+                    const typeClass = `log-line-${log.type === 'error' ? 'error' : log.type === 'done' ? 'done' : log.type === 'status' ? 'status' : 'info'}`;
+                    const isLive = index >= logs.length - liveLineCount;
+                    const className = `log-line ${typeClass}${isLive ? ' log-line-enter' : ''}`;
                     return (
                       <div
                         key={`${log.timestamp}-${index}`}
