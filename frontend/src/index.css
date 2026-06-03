@@ -61,21 +61,22 @@
   --text-tertiary: #94a3b8;
   --text-inverse: #f8fafc;
 
-  --accent: #0891b2;
-  --accent-soft: rgba(8, 145, 178, 0.08);
-  --accent-glow: rgba(8, 145, 178, 0.18);
+  --accent: #06b6d4;
+  --accent-soft: rgba(6, 182, 212, 0.08);
+  --accent-glow: rgba(6, 182, 212, 0.22);
 
   --brand-cyan: #06b6d4;
   --brand-indigo: #6366f1;
+  --brand-magenta: #ec4899;
 
-  --success: #16a34a;
-  --success-soft: rgba(22, 163, 74, 0.08);
+  --success: #10b981;
+  --success-soft: rgba(16, 185, 129, 0.08);
   --warning: #d97706;
   --warning-soft: rgba(217, 119, 6, 0.08);
-  --error: #dc2626;
-  --error-soft: rgba(220, 38, 38, 0.06);
-  --info: #2563eb;
-  --info-soft: rgba(37, 99, 235, 0.06);
+  --error: #ef4444;
+  --error-soft: rgba(239, 68, 68, 0.06);
+  --info: #3b82f6;
+  --info-soft: rgba(59, 130, 246, 0.06);
 
   /* Sidebar */
   --sidebar-bg: #0f172a;
@@ -118,6 +119,7 @@
 
   --brand-cyan: #22d3ee;
   --brand-indigo: #818cf8;
+  --brand-magenta: #f472b6;
 
   --success: #34d399;
   --success-soft: rgba(52, 211, 153, 0.1);
@@ -243,18 +245,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .app-sidebar-logo-icon {
-  width: 34px;
-  height: 34px;
-  display: flex;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--brand-cyan), #0891b2);
-  color: #fff;
-  font-family: var(--font-mono);
-  font-size: 16px;
-  font-weight: 700;
-  flex-shrink: 0;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--accent);
+  border: 1px solid var(--border-default);
+  overflow: hidden;
+}
+
+.app-sidebar-logo-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  color: var(--accent);
 }
 
 .app-sidebar-logo-text {
@@ -479,18 +486,24 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .auth-card-logo {
+  width: 56px;
+  height: 56px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--brand-cyan), #0891b2);
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--brand-cyan), var(--brand-indigo));
   color: #fff;
-  font-family: var(--font-mono);
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.auth-card-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  color: #fff;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
 }
 
 .auth-card-title {
@@ -538,6 +551,22 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--shadow-md) !important;
   overflow: hidden;
   position: relative;
+  background-image: radial-gradient(circle, var(--accent-soft) 1px, transparent 1px) !important;
+  background-size: 24px 24px !important;
+  background-position: 0 0 !important;
+}
+
+.hero-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--brand-cyan) 0%, var(--brand-indigo) 50%, var(--brand-magenta) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 4s linear infinite;
+  pointer-events: none;
 }
 
 .hero-card::before {
@@ -1142,3 +1171,19 @@ h1, h2, h3, h4, h5, h6 {
 .gap-sm { gap: 8px; }
 .gap-md { gap: 16px; }
 .gap-lg { gap: 24px; }
+
+/* ── Animations: hero shimmer + log line fade-in ──────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.log-line-enter {
+  animation: fadeInUp 0.18s ease-out;
+}
