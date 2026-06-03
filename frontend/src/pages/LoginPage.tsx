@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { authApi } from '../api';
 import { useAuthStore } from '../stores/authStore';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import logoSvg from '../assets/logo.svg';
 
 const { Title, Text } = Typography;
 
@@ -39,7 +40,9 @@ export default function LoginPage() {
       <div className="auth-card" style={{ width: 420 }}>
         {/* Header */}
         <div className="auth-card-header">
-          <div className="auth-card-logo">VS</div>
+          <div className="auth-card-logo">
+            <img src={logoSvg} alt="VulnSeeker" />
+          </div>
           <Title level={2} className="auth-card-title">VulnSeeker</Title>
           <Text className="auth-card-subtitle">{t('auth.login.subtitle')}</Text>
         </div>
