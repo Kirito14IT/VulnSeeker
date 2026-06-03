@@ -3,6 +3,7 @@ Admin-only routes for user management.
 All endpoints require authentication with role=admin.
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,7 @@ from core.database import get_db
 from core.security import hash_password
 from models.models import User, Task, TaskStatus, TaskSource
 from api.auth import get_current_user
+from services.task_workspace import clear_task_artifacts, TaskArtifactCleanupError
 from api.schemas import (
     UserResponse,
     UserCreateByAdmin,
@@ -20,6 +22,8 @@ from api.schemas import (
     TaskCreate,
     TaskUpdate,
 )
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -273,6 +277,18 @@ async def delete_task(
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    if task.status == TaskStatus.RUNNING:
+        from tasks.run_analysis import stop_task
+        await stop_task(task_id)
 
     await db.delete(task)
     await db.commit()
+
+    try:
+        clear_task_artifacts(task_id)
+    except TaskArtifactCleanupError as exc:
+        logger.warning(
+            "Admin: failed to clean up artifacts for task %d after deletion: %s",
+            task_id,
+            exc,
+        )

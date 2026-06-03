@@ -2,6 +2,7 @@
 Analysis service: wraps the original VulnSeeker engine for use in the web backend.
 """
 
+import logging
 import sys
 from pathlib import Path
 from typing import Optional, Any
@@ -12,7 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.timezone import local_now_naive
 from models.models import Task, TaskStatus, IssueDecision, TaskSource
 from core.config import get_settings
-from services.task_workspace import clear_orphan_task_artifacts, clear_task_artifacts
+from services.task_workspace import (
+    clear_orphan_task_artifacts,
+    clear_task_artifacts,
+    TaskArtifactCleanupError,
+)
+
+logger = logging.getLogger(__name__)
 
 
 # Ensure VulnSeeker src/ is on the Python path
@@ -77,12 +84,25 @@ class AnalysisService:
         return list(result.scalars().all())
 
     async def delete_task(self, task_id: int, user_id: int) -> bool:
+        """Delete a task, stopping the analysis subprocess first if it is running."""
         task = await self.get_task(task_id, user_id)
         if not task:
             return False
-        clear_task_artifacts(task_id)
+        if task.status == TaskStatus.RUNNING:
+            from tasks.run_analysis import stop_task
+            await stop_task(task_id)
+        # Delete DB record first so the task is gone even if disk cleanup fails
         await self.db.delete(task)
         await self.db.commit()
+        # Best-effort disk cleanup — the orphan sweeper will retry later if this fails
+        try:
+            clear_task_artifacts(task_id)
+        except TaskArtifactCleanupError as exc:
+            logger.warning(
+                "Failed to clean up artifacts for task %d after DB deletion: %s",
+                task_id,
+                exc,
+            )
         return True
 
     async def cleanup_orphan_task_artifacts(self) -> tuple[list[int], list[str]]:

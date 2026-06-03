@@ -31,6 +31,82 @@ from services.task_workspace import (
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
+# ── Subprocess registry (for external cancellation) ────────────────────────────
+# Tracks running analysis subprocesses so they can be killed on demand.
+# Uses threading.Lock because the threaded fallback path writes from a worker thread.
+
+_active_processes: dict[int, asyncio.subprocess.Process | subprocess.Popen] = {}
+_cancel_flags: dict[int, threading.Event] = {}
+_registry_lock = threading.Lock()
+
+
+def _register_process(task_id: int, process: asyncio.subprocess.Process | subprocess.Popen) -> None:
+    with _registry_lock:
+        _active_processes[task_id] = process
+        _cancel_flags.setdefault(task_id, threading.Event())
+
+
+def _unregister_process(task_id: int) -> None:
+    with _registry_lock:
+        _active_processes.pop(task_id, None)
+
+
+def _is_cancelled(task_id: int) -> bool:
+    with _registry_lock:
+        flag = _cancel_flags.get(task_id)
+    return flag is not None and flag.is_set()
+
+
+async def stop_task(task_id: int) -> bool:
+    """
+    Kill the analysis subprocess for *task_id* so the task can be safely deleted.
+
+    Returns True if a running subprocess was found and killed, False otherwise.
+    """
+    with _registry_lock:
+        flag = _cancel_flags.get(task_id)
+        if flag is not None:
+            flag.set()
+        process = _active_processes.pop(task_id, None)
+
+    if process is None:
+        return False
+
+    logger.info("Stopping subprocess for task %d", task_id)
+
+    # ── Terminate gracefully ────────────────────────────────────────────────
+    try:
+        process.terminate()
+    except (ProcessLookupError, OSError):
+        return True  # already dead
+
+    # ── Wait, force-kill on timeout ─────────────────────────────────────────
+    try:
+        if asyncio.iscoroutinefunction(process.wait):
+            await asyncio.wait_for(process.wait(), timeout=5)
+        else:
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, _sync_wait, process, 5)
+    except (asyncio.TimeoutError, subprocess.TimeoutExpired):
+        try:
+            process.kill()
+            if asyncio.iscoroutinefunction(process.wait):
+                await process.wait()
+            else:
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, process.wait)
+        except (ProcessLookupError, OSError):
+            pass
+
+    logger.info("Subprocess for task %d stopped", task_id)
+    return True
+
+
+def _sync_wait(process: subprocess.Popen, timeout: float) -> None:
+    """Blocking wait helper for threaded-fallback Popen."""
+    process.wait(timeout=timeout)
+
+
 # Global sio reference (set in main.py)
 _sio: Any = None
 
@@ -158,30 +234,33 @@ def _run_worker_streaming_blocking(
         env=env,
         bufsize=0,
     )
+    _register_process(task_id, process)
+    try:
+        readers = []
+        if process.stdout is not None:
+            readers.append(threading.Thread(
+                target=_pipe_reader,
+                args=(task_id, process.stdout, "log", loop),
+                daemon=True,
+            )
+            )
+        if process.stderr is not None:
+            readers.append(threading.Thread(
+                target=_pipe_reader,
+                args=(task_id, process.stderr, "error", loop),
+                daemon=True,
+            )
+            )
 
-    readers = []
-    if process.stdout is not None:
-        readers.append(threading.Thread(
-            target=_pipe_reader,
-            args=(task_id, process.stdout, "log", loop),
-            daemon=True,
-        )
-        )
-    if process.stderr is not None:
-        readers.append(threading.Thread(
-            target=_pipe_reader,
-            args=(task_id, process.stderr, "error", loop),
-            daemon=True,
-        )
-        )
+        for reader in readers:
+            reader.start()
 
-    for reader in readers:
-        reader.start()
-
-    return_code = process.wait()
-    for reader in readers:
-        reader.join()
-    return return_code
+        return_code = process.wait()
+        for reader in readers:
+            reader.join()
+        return return_code
+    finally:
+        _unregister_process(task_id)
 
 
 async def _run_worker_async_streaming(
@@ -197,11 +276,15 @@ async def _run_worker_async_streaming(
         stderr=asyncio.subprocess.PIPE,
         env=env,
     )
-    await asyncio.gather(
-        _stream_output(task_id, process.stdout, "log"),
-        _stream_output(task_id, process.stderr, "error"),
-    )
-    return await process.wait()
+    _register_process(task_id, process)
+    try:
+        await asyncio.gather(
+            _stream_output(task_id, process.stdout, "log"),
+            _stream_output(task_id, process.stderr, "error"),
+        )
+        return await process.wait()
+    finally:
+        _unregister_process(task_id)
 
 
 async def _run_worker_cross_platform(
@@ -304,6 +387,11 @@ async def run_analysis(
 
         await _append_log(task_id, "log", "Launching legacy analysis engine")
         return_code = await _run_worker_cross_platform(task_id, cmd, str(workspace), env)
+
+        # If the task was cancelled (deleted) while running, skip DB update
+        if _is_cancelled(task_id):
+            await _append_log(task_id, "status", "Task was cancelled")
+            return
 
         if return_code != 0:
             message = f"Analysis worker exited with code {return_code}"
