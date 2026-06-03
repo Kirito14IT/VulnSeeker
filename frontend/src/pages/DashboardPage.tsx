@@ -9,6 +9,7 @@ import { tasksApi } from '../api';
 import { useAuthStore } from '../stores/authStore';
 import type { Task } from '../types';
 import { getTaskPresentation } from '../utils/taskPresentation';
+import logoSvg from '../assets/logo.svg';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -115,9 +116,12 @@ export default function DashboardPage() {
       <div className="hero-card" style={{ padding: '24px 28px', marginBottom: 20 }}>
         <Row justify="space-between" gutter={[16, 16]} align="middle">
           <Col xs={24} lg={14}>
-            <Title level={2} className="hero-title" style={{ marginBottom: 8 }}>
-              {t('dashboard.title')}
-            </Title>
+            <Space size={16} align="center" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+              <img src={logoSvg} alt="VulnSeeker" style={{ height: 56 }} />
+              <Title level={1} className="hero-title" style={{ margin: 0, fontSize: 32 }}>
+                VulnSeeker
+              </Title>
+            </Space>
             <Paragraph className="hero-subtitle" style={{ marginBottom: 0 }}>
               {t('dashboard.description')}
             </Paragraph>
