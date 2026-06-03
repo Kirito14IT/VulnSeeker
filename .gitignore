@@ -103,6 +103,11 @@ ehthumbs.db
 # ── Frontend dependencies (node_modules) ─────────────────────────────────────
 frontend/node_modules/
 
+# ── Playwright ─────────────────────────────────────────────────────────────────
+playwright/node_modules/
+playwright/playwright-report/
+playwright/test-results/
+
 # ── Frontend build output ────────────────────────────────────────────────────
 frontend/dist/
 frontend/dist-ssr/

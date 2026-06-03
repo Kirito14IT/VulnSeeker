@@ -1,0 +1,21 @@
+{
+  "name": "vulnseeker-playwright",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:register": "playwright test tests/register.spec.ts",
+    "test:login": "playwright test tests/login.spec.ts",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen http://localhost:5173"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^18.19.0",
+    "typescript": "^5.5.0"
+  }
+}
