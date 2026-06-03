@@ -19,7 +19,6 @@
   "nav": {
     "dashboard": "仪表盘",
     "newAnalysis": "新建分析",
-    "globalResults": "全局结果",
     "admin": "管理面板",
     "legacySupport": "运行统计",
     "preferences": "偏好设置",
@@ -109,9 +108,6 @@
     "runAnalysis": "运行分析",
     "cardCreateTask": "创建新任务",
     "cardCreateDesc": "支持 GitHub DB、现有 CodeQL DB 和本地源码目录三种模式。",
-    "legacyUi": "结果",
-    "cardGlobalResults": "全局结果浏览",
-    "cardGlobalDesc": "浏览共享根目录 `output/results` 的分析结果。",
     "taskHistory": "任务历史",
     "newTask": "新建任务",
     "run": "运行",
@@ -260,17 +256,6 @@
     "loadWarning": "已加载问题，但 {{count}} 个问题详情请求失败。",
     "loadError": "加载可视化数据失败",
     "codeContext": "代码上下文"
-  },
-  "globalResults": {
-    "title": "全局结果",
-    "description": "旧版 `vulnseeker-ui` 浏览器的 Web 版本，基于共享根目录 `output/results`。",
-    "back": "返回",
-    "reload": "重新加载",
-    "loadFailed": "加载结果失败",
-    "detailLoadFailed": "加载问题详情失败",
-    "decisionSaved": "判定已保存",
-    "decisionCleared": "判定已清除",
-    "decisionSaveFailed": "保存判定失败"
   },
   "legacySupport": {
     "title": "系统运行状态",

@@ -4,7 +4,6 @@ import { Button, Tooltip } from 'antd';
 import {
   DashboardOutlined,
   PlusCircleOutlined,
-  SearchOutlined,
   SafetyCertificateOutlined,
   DatabaseOutlined,
   LogoutOutlined,
@@ -53,12 +52,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
       path: '/tasks/new',
       label: t('nav.newAnalysis'),
       icon: <PlusCircleOutlined />,
-    },
-    {
-      key: 'global-results',
-      path: '/result/results',
-      label: t('nav.globalResults'),
-      icon: <SearchOutlined />,
     },
     {
       key: 'admin',

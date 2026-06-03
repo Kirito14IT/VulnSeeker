@@ -101,15 +101,6 @@ export const resultsApi = {
 };
 
 export const legacyApi = {
-  listIssues: () =>
-    api.get<IssueSummary[]>('/api/legacy/issues').then((r) => r.data),
-
-  getIssue: (issueId: string) =>
-    api.get<IssueDetail>(`/api/legacy/issues/${issueId}`).then((r) => r.data),
-
-  updateDecision: (issueId: string, decision: string | null) =>
-    api.patch(`/api/legacy/issues/${issueId}`, { decision } as IssueDecisionUpdate),
-
   stats: () =>
     api.get<RepoStat[]>('/api/legacy/stats').then((r) => r.data),
 };

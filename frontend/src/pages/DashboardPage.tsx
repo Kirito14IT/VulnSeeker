@@ -144,15 +144,6 @@ export default function DashboardPage() {
             </Space>
           </div>
         </Col>
-        <Col xs={24} md={12}>
-          <div className="nav-card" onClick={() => navigate('/result/results')} style={{ padding: '20px 24px' }}>
-            <Space direction="vertical" size={8}>
-              <Tag color="geekblue" className="nav-card-tag">{t('dashboard.legacyUi')}</Tag>
-              <Title level={4} style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{t('dashboard.cardGlobalResults')}</Title>
-              <Text type="secondary">{t('dashboard.cardGlobalDesc')}</Text>
-            </Space>
-          </div>
-        </Col>
       </Row>
 
       {/* Task table */}

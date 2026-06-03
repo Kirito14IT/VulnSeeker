@@ -18,7 +18,6 @@ import DashboardPage from './pages/DashboardPage';
 import NewTaskPage from './pages/NewTaskPage';
 import TaskResultPage from './pages/TaskResultPage';
 import TaskVisualizationPage from './pages/TaskVisualizationPage';
-import GlobalResultsPage from './pages/GlobalResultsPage';
 import LegacySupportPage from './pages/LegacySupportPage';
 import AdminPage from './pages/AdminPage';
 
@@ -111,7 +110,6 @@ function ThemedApp() {
                 <Route path="/tasks/new" element={<NewTaskPage />} />
                 <Route path="/tasks/:taskId" element={<TaskResultPage />} />
                 <Route path="/tasks/:taskId/visualization" element={<TaskVisualizationPage />} />
-                <Route path="/result/results" element={<GlobalResultsPage />} />
               </Route>
 
               {/* Admin routes — with sidebar layout */}

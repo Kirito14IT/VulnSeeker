@@ -19,7 +19,6 @@
   "nav": {
     "dashboard": "Dashboard",
     "newAnalysis": "New Analysis",
-    "globalResults": "Global Results",
     "admin": "Admin Panel",
     "legacySupport": "System Statistics",
     "preferences": "Preferences",
@@ -109,9 +108,6 @@
     "runAnalysis": "Run Analysis",
     "cardCreateTask": "Create New Task",
     "cardCreateDesc": "GitHub DB, existing CodeQL DB, and local source tree modes are all supported.",
-    "legacyUi": "Results",
-    "cardGlobalResults": "Global Results Browser",
-    "cardGlobalDesc": "Browse the shared root `output/results` view.",
     "taskHistory": "Task History",
     "newTask": "New Task",
     "run": "Run",
@@ -260,17 +256,6 @@
     "loadWarning": "Loaded issues, but {{count}} issue detail request(s) failed.",
     "loadError": "Failed to load visualization data",
     "codeContext": "Code Context"
-  },
-  "globalResults": {
-    "title": "Global Results",
-    "description": "Web version of the `vulnseeker-ui` browser, backed by the shared root `output/results`.",
-    "back": "Back",
-    "reload": "Reload",
-    "loadFailed": "Failed to load results",
-    "detailLoadFailed": "Failed to load issue detail",
-    "decisionSaved": "Decision saved",
-    "decisionCleared": "Decision cleared",
-    "decisionSaveFailed": "Failed to save decision"
   },
   "legacySupport": {
     "title": "System Status",

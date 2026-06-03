@@ -449,31 +449,6 @@ function TasksTab() {
   );
 }
 
-/* ── Tools tab ──────────────────────────────────────────────────────────────── */
-
-function ToolsTab() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-
-  return (
-    <Row gutter={[16, 16]}>
-      <Col xs={24} md={8}>
-        <div
-          className="nav-card"
-          onClick={() => navigate('/result/stats')}
-          style={{ padding: '20px 24px' }}
-        >
-          <Space direction="vertical" size={8}>
-            <Tag color="cyan" className="nav-card-tag">{t('admin.tools.cliHelpers')}</Tag>
-            <Title level={4} style={{ margin: 0, fontFamily: 'var(--font-heading)' }}>{t('admin.tools.statsValidation')}</Title>
-            <Text type="secondary">{t('admin.tools.statsValidationDesc')}</Text>
-          </Space>
-        </div>
-      </Col>
-    </Row>
-  );
-}
-
 /* ── Main AdminPage ─────────────────────────────────────────────────────────── */
 
 export default function AdminPage() {
@@ -505,7 +480,6 @@ export default function AdminPage() {
         items={[
           { key: 'users', label: t('admin.tabs.users'), children: <UsersTab me={me} /> },
           { key: 'tasks', label: t('admin.tabs.tasks'), children: <TasksTab /> },
-          { key: 'tools', label: t('admin.tabs.tools'), children: <ToolsTab /> },
         ]}
       />
     </>
