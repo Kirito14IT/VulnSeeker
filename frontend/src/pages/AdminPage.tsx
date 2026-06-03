@@ -71,7 +71,8 @@ function UsersTab({ me }: { me: User | null }) {
     if (!editUser) return;
     setSubmitting(true);
     try {
-      const payload: Record<string, string> = { username: values.username, email: values.email, role: values.role };
+      const payload: Record<string, string> = { username: values.username, email: values.email };
+      if (editUser.id !== me?.id) payload.role = values.role;
       if (values.password) payload.password = values.password;
       await adminApi.updateUser(editUser.id, payload);
       message.success(t('admin.users.updated'));
@@ -163,8 +164,12 @@ function UsersTab({ me }: { me: User | null }) {
           <Form.Item name="username" label={t('admin.form.username')} rules={[{ required: true, min: 3 }]}><Input /></Form.Item>
           <Form.Item name="email" label={t('admin.form.email')} rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
           <Form.Item name="password" label={t('admin.form.newPassword')}><Input.Password /></Form.Item>
-          <Form.Item name="role" label={t('admin.form.role')}>
-            <Select><Select.Option value="user">{t('admin.users.roleUser')}</Select.Option><Select.Option value="admin">{t('admin.users.roleAdmin')}</Select.Option></Select>
+          <Form.Item name="role" label={t('admin.form.role')}
+            help={editUser?.id === me?.id ? t('admin.users.cannotChangeOwnRole') : undefined}>
+            <Select disabled={editUser?.id === me?.id}>
+              <Select.Option value="user">{t('admin.users.roleUser')}</Select.Option>
+              <Select.Option value="admin">{t('admin.users.roleAdmin')}</Select.Option>
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

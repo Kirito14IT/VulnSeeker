@@ -41,7 +41,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.url?.includes('/api/auth/login')) {
       localStorage.removeItem('vulnseeker_token');
       localStorage.removeItem('vulnseeker_user');
       window.location.href = '/login';

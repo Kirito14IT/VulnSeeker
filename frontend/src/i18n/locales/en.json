@@ -83,7 +83,8 @@
       "noAccount": "No account?",
       "registerLink": "Register here",
       "success": "Welcome back, {{username}}!",
-      "failed": "Login failed"
+      "failed": "Invalid username or password",
+      "wrongCredentials": "Invalid username or password"
     },
     "register": {
       "title": "VulnSeeker",
@@ -318,7 +319,8 @@
       "updateFailed": "Failed to update user",
       "deleted": "User '{{username}}' deleted",
       "deleteFailed": "Failed to delete user",
-      "loadFailed": "Failed to load users"
+      "loadFailed": "Failed to load users",
+      "cannotChangeOwnRole": "Cannot change your own role"
     },
     "tasks": {
       "title": "Tasks",
