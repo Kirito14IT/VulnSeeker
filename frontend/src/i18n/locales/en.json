@@ -201,6 +201,7 @@
     "detailLoadFailed": "Failed to load issue detail",
     "taskNotFound": "Task not found",
     "loadError": "Failed to load task",
+    "invalidTaskId": "Invalid task ID",
     "decisionSaved": "Decision saved",
     "decisionCleared": "Decision cleared",
     "decisionSaveFailed": "Failed to save decision"

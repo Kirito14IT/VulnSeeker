@@ -64,19 +64,30 @@ export default function TaskResultPage() {
   }, [tid]);
 
   const loadTask = useCallback(async () => {
+    // NaN-safe comparison — NaN !== NaN in JS, so a plain === check
+    // would silently drop the error when taskId is non-numeric.
+    const isCurrentTask = Number.isNaN(tid)
+      ? Number.isNaN(activeTaskIdRef.current)
+      : activeTaskIdRef.current === tid;
+
     try {
       const data = await tasksApi.get(tid);
-      if (activeTaskIdRef.current === tid) {
+      if (isCurrentTask) {
         setTask(data);
         setLoadError(null);
       }
       return data;
     } catch (err: unknown) {
-      const response = (err as { response?: { status?: number } }).response;
-      if (activeTaskIdRef.current === tid) {
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: unknown } } };
+      const status = axiosErr.response?.status;
+      if (isCurrentTask) {
         setTask(null);
-        if (response?.status === 404) {
+        if (status === 404) {
           setLoadError(t('taskResult.taskNotFound'));
+        } else if (status === 422) {
+          // FastAPI validation error (e.g. non-numeric task ID like /tasks/abc)
+          message.error(t('taskResult.invalidTaskId'));
+          setLoadError(t('taskResult.invalidTaskId'));
         } else {
           setLoadError(t('taskResult.loadError'));
         }

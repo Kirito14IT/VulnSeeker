@@ -201,6 +201,7 @@
     "detailLoadFailed": "加载问题详情失败",
     "taskNotFound": "任务未找到",
     "loadError": "加载任务失败",
+    "invalidTaskId": "无效的任务 ID",
     "decisionSaved": "判定已保存",
     "decisionCleared": "判定已清除",
     "decisionSaveFailed": "保存判定失败"
