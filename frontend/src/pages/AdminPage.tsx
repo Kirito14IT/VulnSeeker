@@ -4,7 +4,7 @@ import {
   Table, Tabs, Tag, Typography, message,
 } from 'antd';
 import {
-  DeleteOutlined, EditOutlined, EyeOutlined, LogoutOutlined, PlusOutlined,
+  DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -453,25 +453,16 @@ function TasksTab() {
 
 export default function AdminPage() {
   const { t } = useTranslation();
-  const { user: me, logout } = useAuthStore();
-  const navigate = useNavigate();
-
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const { user: me } = useAuthStore();
 
   return (
     <>
       {/* Hero */}
       <div className="hero-card" style={{ padding: '20px 28px', marginBottom: 20 }}>
-        <Row justify="space-between" align="middle">
+        <Row align="middle">
           <Col>
             <Title level={2} className="hero-title" style={{ margin: 0 }}>{t('admin.title')}</Title>
             <Text type="secondary">{t('admin.subtitle')}</Text>
-          </Col>
-          <Col>
-            <Space>
-              <Text type="secondary">{t('admin.signedInAs', { username: me?.username })}</Text>
-              <Button icon={<LogoutOutlined />} onClick={handleLogout}>{t('admin.logout')}</Button>
-            </Space>
           </Col>
         </Row>
       </div>

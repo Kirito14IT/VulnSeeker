@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
 
 import { tasksApi } from '../api';
-import { useAuthStore } from '../stores/authStore';
 import type { Task } from '../types';
 import { getTaskPresentation } from '../utils/taskPresentation';
 import logoSvg from '../assets/logo.svg';
@@ -17,7 +16,6 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
   const { t } = useTranslation();
 
   const loadTasks = async () => {
@@ -125,14 +123,6 @@ export default function DashboardPage() {
             <Paragraph className="hero-subtitle" style={{ marginBottom: 0 }}>
               {t('dashboard.description')}
             </Paragraph>
-          </Col>
-          <Col>
-            <Space wrap>
-              <Text type="secondary">
-                {t('dashboard.signedInAs', { username: '' })} {/* username shown in sidebar */}
-              </Text>
-              <Button onClick={logout}>{t('common.logout')}</Button>
-            </Space>
           </Col>
         </Row>
       </div>

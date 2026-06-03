@@ -104,6 +104,7 @@
   "dashboard": {
     "title": "VulnSeeker Web 控制台",
     "description": "统一访问 VulnSeeker 流水线：创建隔离的 Web 分析任务、查看任务结果、浏览仓库级统计信息、验证运行时配置。",
+    "signedInAs": "当前用户：{{username}}",
     "runAnalysis": "运行分析",
     "cardCreateTask": "创建新任务",
     "cardCreateDesc": "支持 GitHub DB、现有 CodeQL DB 和本地源码目录三种模式。",
@@ -187,6 +188,7 @@
     "partialResultDesc": "CodeQL 发现了 {{rawCount}} 个原始问题，但 LLM 阶段仅产生了 {{finalCount}} 个最终结果。下方仍可查看原始匹配项。",
     "notStarted": "此任务尚未启动。请启动分析以生成结果。",
     "running": "分析正在运行。任务完成后结果将显示在此处。",
+    "runningHint": "正在扫描代码、构建查询并生成分析...",
     "failedBeforeResults": "任务在生成结果前已失败。",
     "restarted": "任务已重新启动",
     "started": "任务已启动",
@@ -376,7 +378,12 @@
     "issueType": "问题类型",
     "file": "文件",
     "function": "函数",
-    "nA": "N/A"
+    "nA": "N/A",
+    "translateEn": "EN",
+    "translateZh": "中文",
+    "translating": "翻译中...",
+    "translateFailed": "翻译失败，已显示原文",
+    "translateFailedWithDetail": "翻译失败：{{detail}}"
   },
   "markdownSummary": {
     "noSummary": "无可用的摘要"

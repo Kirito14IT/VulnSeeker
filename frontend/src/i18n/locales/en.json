@@ -104,6 +104,7 @@
   "dashboard": {
     "title": "VulnSeeker Web Console",
     "description": "Unified access to the VulnSeeker pipeline: create isolated web tasks, inspect task results, review repo-level statistics, and validate runtime configuration.",
+    "signedInAs": "Signed in as {{username}}",
     "runAnalysis": "Run Analysis",
     "cardCreateTask": "Create New Task",
     "cardCreateDesc": "GitHub DB, existing CodeQL DB, and local source tree modes are all supported.",
@@ -187,6 +188,7 @@
     "partialResultDesc": "CodeQL found {{rawCount}} raw issue(s), but the LLM stage produced {{finalCount}} finalized result(s). Raw matches are still available below.",
     "notStarted": "This task has not started yet. Start the analysis to generate results.",
     "running": "Analysis is running. Results will appear here as soon as the task completes.",
+    "runningHint": "Scanning code, building queries and generating analysis...",
     "failedBeforeResults": "Task failed before results were generated.",
     "restarted": "Task restarted",
     "started": "Task started",
@@ -376,7 +378,12 @@
     "issueType": "Issue Type",
     "file": "File",
     "function": "Function",
-    "nA": "N/A"
+    "nA": "N/A",
+    "translateEn": "EN",
+    "translateZh": "中文",
+    "translating": "Translating...",
+    "translateFailed": "Translation failed, showing original",
+    "translateFailedWithDetail": "Translation failed: {{detail}}"
   },
   "markdownSummary": {
     "noSummary": "No summary available"
